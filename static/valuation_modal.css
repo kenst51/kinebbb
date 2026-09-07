@@ -1,0 +1,518 @@
+/* ==========================================================================
+   VALUATION MODAL & CONSENSUS DASHBOARD - MODERN DARK NEON BENTO UI
+   ========================================================================== */
+
+#valuationModalOverlay {
+    position: fixed !important;
+    top: 0 !important; left: 0 !important; right: 0 !important; bottom: 0 !important;
+    background: rgba(0, 0, 0, 0.78) !important;
+    backdrop-filter: blur(6px);
+    z-index: 10000 !important;
+    display: none;
+    align-items: center;
+    justify-content: center;
+}
+
+.val-modal-container {
+    width: 92% !important;
+    max-width: 1240px !important;
+    height: 90vh !important;
+    max-height: 920px !important;
+    background: #131722 !important;
+    border: 1px solid rgba(255, 255, 255, 0.08) !important;
+    border-radius: 16px !important;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    box-shadow: 0 12px 40px rgba(0,0,0,0.6) !important;
+}
+
+.val-modal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 12px 22px !important;
+    background: linear-gradient(180deg, #181d2a 0%, #131722 100%) !important;
+    border-bottom: 1px solid rgba(41, 121, 255, 0.3) !important;
+    flex-shrink: 0;
+}
+
+.val-modal-title {
+    margin: 0;
+    font-size: 16px;
+    font-weight: 800;
+    color: #ffffff;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.val-symbol-badge {
+    background: linear-gradient(135deg, rgba(239, 68, 68, 0.25), rgba(239, 68, 68, 0.1));
+    color: #ff5252;
+    border: 1px solid rgba(239, 68, 68, 0.4);
+    padding: 3px 10px;
+    border-radius: 6px;
+    font-size: 14px;
+    font-weight: 800;
+    font-family: monospace;
+}
+
+/* MODAL TABS */
+.modal-tabs {
+    display: flex;
+    gap: 8px;
+    padding: 10px 22px !important;
+    background: #151924 !important;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.06) !important;
+    flex-shrink: 0;
+}
+
+.val-tab-btn {
+    padding: 6px 18px !important;
+    font-size: 13px !important;
+    font-weight: 700 !important;
+    color: #8b949e !important;
+    background: transparent !important;
+    border: 1px solid transparent !important;
+    border-radius: 8px !important;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.val-tab-btn:hover {
+    color: #ffffff !important;
+    background: rgba(255, 255, 255, 0.04) !important;
+}
+
+.val-tab-btn.active {
+    background: #2979ff !important;
+    color: #ffffff !important;
+    box-shadow: 0 0 12px rgba(41, 121, 255, 0.45) !important;
+    border-color: rgba(41, 121, 255, 0.6) !important;
+}
+
+/* STDV PILLS BAR */
+#valStdvControls {
+    display: flex;
+    gap: 8px;
+    padding: 8px 22px !important;
+    background: #131722 !important;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.06) !important;
+    align-items: center;
+    flex-wrap: wrap;
+}
+
+.val-stdv-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 11.5px;
+    font-weight: 700;
+    padding: 3px 10px;
+    border-radius: 6px;
+    cursor: pointer;
+    user-select: none;
+    transition: all 0.2s ease;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    background: rgba(255, 255, 255, 0.03);
+    color: #8b949e;
+}
+
+.val-stdv-pill:hover {
+    color: #ffffff;
+    border-color: rgba(255, 255, 255, 0.2);
+}
+
+.val-stdv-pill.active-n2 { background: rgba(244, 67, 54, 0.18); border-color: #f44336; color: #f44336; }
+.val-stdv-pill.active-n1 { background: rgba(255, 152, 0, 0.18); border-color: #ff9800; color: #ff9800; }
+.val-stdv-pill.active-mean { background: rgba(156, 39, 176, 0.2); border-color: #ba68c8; color: #e1bee7; }
+.val-stdv-pill.active-p1 { background: rgba(76, 175, 80, 0.18); border-color: #4caf50; color: #4caf50; }
+.val-stdv-pill.active-p2 { background: rgba(33, 150, 243, 0.18); border-color: #2196f3; color: #2196f3; }
+
+#valuationTabCharts {
+    display: flex;
+    flex-direction: column;
+    flex: 1 1 0%;
+    min-height: 0;
+    overflow-y: auto !important;
+    overflow-x: hidden !important;
+    scroll-behavior: smooth;
+}
+
+#valuationTabCharts::-webkit-scrollbar {
+    width: 8px !important;
+}
+#valuationTabCharts::-webkit-scrollbar-track {
+    background: rgba(255, 255, 255, 0.04) !important;
+    border-radius: 4px !important;
+}
+#valuationTabCharts::-webkit-scrollbar-thumb {
+    background: #2979ff !important;
+    border-radius: 4px !important;
+}
+#valuationTabCharts::-webkit-scrollbar-thumb:hover {
+    background: #40c4ff !important;
+}
+
+/* CHARTS BODY */
+.val-charts-body {
+    display: grid !important;
+    grid-template-columns: 1fr 1fr !important;
+    gap: 16px !important;
+    padding: 14px 22px 30px !important;
+    flex-shrink: 0 !important;
+    min-height: 430px !important;
+    overflow: visible !important;
+}
+
+@media (max-width: 900px) {
+    .val-charts-body {
+        grid-template-columns: 1fr !important;
+    }
+}
+
+.val-chart-wrapper {
+    background: #181d2a !important;
+    border: 1px solid rgba(255, 255, 255, 0.08) !important;
+    border-radius: 12px !important;
+    padding: 12px 14px !important;
+    display: flex !important;
+    flex-direction: column !important;
+    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.35) !important;
+    height: 420px !important;
+    min-height: 420px !important;
+    flex-shrink: 0 !important;
+}
+
+#peChart, #pbChart {
+    width: 100% !important;
+    height: 360px !important;
+    min-height: 360px !important;
+    flex: 1 1 360px !important;
+}
+
+.val-chart-title {
+    font-size: 13.5px !important;
+    font-weight: 800 !important;
+    color: #ffffff !important;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 8px !important;
+    padding-bottom: 6px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+/* ==========================================================================
+   AI EXECUTIVE SUMMARY / EXPERT CALLOUT BANNER
+   ========================================================================== */
+.val-expert-banner {
+    background: linear-gradient(135deg, rgba(41, 121, 255, 0.08) 0%, rgba(156, 39, 176, 0.08) 100%);
+    border: 1px solid rgba(41, 121, 255, 0.3);
+    border-radius: 12px;
+    padding: 12px 18px;
+    margin: 10px 22px 4px;
+    box-shadow: 0 4px 18px rgba(0, 0, 0, 0.25);
+    flex-shrink: 0;
+}
+
+.val-expert-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 7px;
+}
+
+.val-expert-title {
+    font-size: 12.5px;
+    font-weight: 800;
+    color: #40c4ff;
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    letter-spacing: 0.5px;
+}
+
+.val-expert-tag {
+    font-size: 11px;
+    font-weight: 800;
+    padding: 2px 10px;
+    border-radius: 6px;
+    letter-spacing: 0.5px;
+    text-transform: uppercase;
+    transition: all 0.2s ease;
+}
+
+.tag-super-cheap {
+    background: rgba(0, 230, 118, 0.16);
+    color: #00e676;
+    border: 1px solid rgba(0, 230, 118, 0.4);
+}
+
+.tag-cheap {
+    background: rgba(105, 240, 174, 0.16);
+    color: #69f0ae;
+    border: 1px solid rgba(105, 240, 174, 0.4);
+}
+
+.tag-fair {
+    background: rgba(255, 215, 64, 0.16);
+    color: #ffd740;
+    border: 1px solid rgba(255, 215, 64, 0.4);
+}
+
+.tag-expensive {
+    background: rgba(255, 82, 82, 0.16);
+    color: #ff5252;
+    border: 1px solid rgba(255, 82, 82, 0.4);
+}
+
+.val-expert-bullets {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    font-size: 12px;
+    color: #d1d4dc;
+    line-height: 1.5;
+}
+
+.val-expert-bullet-item {
+    display: flex;
+    align-items: baseline;
+    gap: 6px;
+}
+
+.val-bullet-dot {
+    color: #40c4ff;
+    font-size: 8px;
+    flex-shrink: 0;
+}
+
+/* ==========================================================================
+   TIER 1 & TIER 2 GRID & CARDS (BENTO UI)
+   ========================================================================== */
+.val-tier-grid-1 {
+    display: grid;
+    grid-template-columns: 1.8fr 1.2fr;
+    gap: 14px;
+    padding: 10px 22px 4px;
+    flex-shrink: 0;
+}
+
+.val-tier-grid-2 {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 14px;
+    padding: 6px 22px 10px;
+    flex-shrink: 0;
+}
+
+@media (max-width: 900px) {
+    .val-tier-grid-1, .val-tier-grid-2 {
+        grid-template-columns: 1fr;
+    }
+}
+
+.val-bento-card {
+    background: #181d2a;
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 12px;
+    padding: 12px 16px;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.28);
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+}
+
+.val-card-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 8px;
+}
+
+.val-card-title {
+    font-size: 12px;
+    font-weight: 800;
+    color: #e2e8f0;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    text-transform: uppercase;
+    letter-spacing: 0.4px;
+}
+
+/* Gauge Track */
+.val-gauge-wrapper {
+    padding: 10px 4px 2px;
+}
+
+.val-gauge-track {
+    position: relative;
+    height: 10px;
+    border-radius: 5px;
+    background: linear-gradient(90deg, #00c853 0%, #aeea00 25%, #ffd600 50%, #ff9100 75%, #ff3d00 100%);
+    box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.5);
+}
+
+.val-gauge-marker {
+    position: absolute;
+    top: -5px;
+    width: 6px;
+    height: 20px;
+    background: #ffffff;
+    border: 2px solid #131722;
+    border-radius: 3px;
+    transform: translateX(-50%);
+    box-shadow: 0 0 10px rgba(255, 255, 255, 0.9), 0 2px 4px rgba(0,0,0,0.5);
+    transition: left 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.val-gauge-labels {
+    display: flex;
+    justify-content: space-between;
+    font-size: 10px;
+    color: #8b949e;
+    margin-top: 6px;
+    font-family: monospace;
+}
+
+.val-gauge-stats {
+    background: rgba(255, 255, 255, 0.04);
+    border-radius: 6px;
+    padding: 5px 12px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 11px;
+    font-family: monospace;
+    color: #8b949e;
+    margin-top: 8px;
+}
+
+/* Peer Comparison */
+.val-peer-row {
+    margin-bottom: 8px;
+}
+.val-peer-info {
+    display: flex;
+    justify-content: space-between;
+    font-size: 11.5px;
+    margin-bottom: 3px;
+}
+.val-peer-bar-bg {
+    width: 100%;
+    height: 7px;
+    background: rgba(255, 255, 255, 0.07);
+    border-radius: 4px;
+    overflow: hidden;
+}
+.val-peer-bar-fill {
+    height: 100%;
+    border-radius: 4px;
+    transition: width 0.4s ease;
+}
+.val-peer-diff {
+    font-size: 10.5px;
+    text-align: right;
+    margin-top: 2px;
+    font-weight: 700;
+}
+
+/* Implied Price Table */
+.val-implied-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 12px;
+}
+.val-implied-table th {
+    color: #8b949e;
+    font-size: 11px;
+    font-weight: 700;
+    padding-bottom: 5px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+}
+.val-implied-table td {
+    padding: 6px 0;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+}
+.val-implied-sub {
+    font-size: 10px;
+    color: #8b949e;
+    font-family: monospace;
+}
+
+/* What-If Simulator */
+.val-slider-group {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    margin-bottom: 6px;
+}
+.val-slider-label {
+    display: flex;
+    justify-content: space-between;
+    font-size: 11.5px;
+    color: #d1d4dc;
+}
+.val-range-input {
+    width: 100%;
+    height: 5px;
+    background: rgba(255, 255, 255, 0.12);
+    border-radius: 3px;
+    appearance: none;
+    outline: none;
+    cursor: pointer;
+}
+.val-range-input::-webkit-slider-thumb {
+    appearance: none;
+    width: 14px;
+    height: 14px;
+    border-radius: 50%;
+    background: #2979ff;
+    cursor: pointer;
+    box-shadow: 0 0 8px rgba(41, 121, 255, 0.8);
+    transition: transform 0.1s;
+}
+.val-range-input::-webkit-slider-thumb:hover {
+    transform: scale(1.2);
+}
+
+.val-whatif-result-box {
+    background: rgba(0, 0, 0, 0.35);
+    border: 1px solid rgba(41, 121, 255, 0.25);
+    border-radius: 8px;
+    padding: 6px 12px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-top: 4px;
+}
+
+/* Tier 3 Header */
+.val-tier3-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 8px 22px 2px;
+    border-top: 1px solid rgba(255, 255, 255, 0.06);
+    flex-wrap: wrap;
+    gap: 8px;
+    flex-shrink: 0;
+}
+.val-tier3-title {
+    font-size: 12px;
+    font-weight: 800;
+    color: #ffffff;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    text-transform: uppercase;
+    letter-spacing: 0.4px;
+}
+
+

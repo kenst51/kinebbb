@@ -1,0 +1,3350 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Hồ Sơ Doanh Nghiệp</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js">
+        // ================= SHAREHOLDER PORTFOLIO SYSTEM =================
+        let g_currentShData = null;
+        let g_currentShFilterFloor = 'all';
+        let g_currentShSearchQuery = '';
+        let g_shDonutChart = null;
+
+        function getShareholderSlug(name) {
+            if (!name) return '';
+            const norm = name.trim().toLowerCase().normalize('NFC');
+            let s = norm;
+            s = s.replace(/[àáạảãâầấậẩẫăằắặẳẵ]/g, 'a');
+            s = s.replace(/[èéẹẻẽêềếệểễ]/g, 'e');
+            s = s.replace(/[ìíịỉĩ]/g, 'i');
+            s = s.replace(/[òóọỏõôồốộổỗơờớợởỡ]/g, 'o');
+            s = s.replace(/[ùúụủũưừứựửữ]/g, 'u');
+            s = s.replace(/[ỳýỵỷỹ]/g, 'y');
+            s = s.replace(/[đ]/g, 'd');
+            const clean = s.replace(/[^a-z0-9_]+/g, '_').replace(/^_+|_+$/g, '').substring(0, 40);
+
+            let h = 5381;
+            for (let i = 0; i < norm.length; i++) {
+                h = (((h << 5) + h) + norm.charCodeAt(i)) & 0xFFFFFFFF;
+            }
+            const hashHex = (h >>> 0).toString(16).padStart(8, '0');
+            return `${clean}_${hashHex}`;
+        }
+            const hashHex = (h >>> 0).toString(16).padStart(8, '0');
+            return `${clean}_${hashHex}`;
+        }
+
+        async function openShareholderPortfolio(name) {
+            if (!name) return;
+            const cleanName = name.trim();
+            const slug = getShareholderSlug(cleanName);
+
+            // Open modal immediately
+            const modal = document.getElementById('shareholderModal');
+            if (modal) modal.classList.add('show');
+
+            // Set loading state
+            document.getElementById('shModalName').innerText = cleanName;
+            document.getElementById('shModalType').innerText = 'Đang tải dữ liệu...';
+            document.getElementById('shModalAvatar').innerText = '⏳';
+            document.getElementById('shKpiHoldings').innerText = '...';
+            document.getElementById('shKpiMarketVal').innerText = '...';
+            document.getElementById('shKpiShares').innerText = '...';
+            document.getElementById('shKpiTopSymbol').innerText = '...';
+            document.getElementById('shTableBody').innerHTML = '<tr><td colspan="8" style="text-align:center; padding:30px; color:var(--accent-cyan);"><div class="spinner-ring" style="width:24px; height:24px; margin:0 auto 10px;"></div>Đang tải danh mục cổ phiếu...</td></tr>';
+
+            let data = null;
+
+            // 1. Try instant static JSON
+            try {
+                const res = await fetch(`/shareholder_data/${slug}.json?v=${Date.now()}`);
+                if (res.ok) {
+                    data = await res.json();
+                }
+            } catch (e) {
+                console.warn('Error fetching static shareholder:', e);
+            }
+
+            // 2. Fallback to API if static slug failed
+            if (!data) {
+                try {
+                    const res2 = await fetch(`/api/fialda/shareholder-portfolio?name=${encodeURIComponent(cleanName)}`);
+                    if (res2.ok) {
+                        const json2 = await res2.json();
+                        if (json2 && json2.status === 'success' && json2.data) {
+                            data = json2.data;
+                        }
+                    }
+                } catch (e) {
+                    console.warn('Error fetching API shareholder:', e);
+                }
+            }
+
+            if (!data || !data.holdings || data.holdings.length === 0) {
+                document.getElementById('shModalType').innerText = 'Chưa có danh mục';
+                document.getElementById('shModalAvatar').innerText = '⚠️';
+                document.getElementById('shTableBody').innerHTML = `<tr><td colspan="8" style="text-align:center; padding:30px; color:var(--text-muted);">Không tìm thấy dữ liệu danh mục nắm giữ của cổ đông <b>${cleanName}</b> trên hệ thống.</td></tr>`;
+                return;
+            }
+
+            g_currentShData = data;
+            g_currentShFilterFloor = 'all';
+            g_currentShSearchQuery = '';
+
+            // Set Header
+            document.getElementById('shModalName').innerText = data.name || cleanName;
+            document.getElementById('shModalType').innerText = data.isIndividual ? 'Cá nhân' : 'Tổ chức / Quỹ đầu tư';
+            document.getElementById('shModalAvatar').innerText = data.isIndividual ? '👤' : '🏛️';
+
+            // Set KPIs
+            document.getElementById('shKpiHoldings').innerText = `${data.totalHoldings || data.holdings.length} mã CP`;
+            document.getElementById('shKpiMarketVal').innerText = `${formatNum(data.totalMarketValueTy || 0, 1)} Tỷ VNĐ`;
+            const totalSh = data.totalShares || 0;
+            document.getElementById('shKpiShares').innerText = totalSh >= 1e9 ? `${(totalSh/1e9).toFixed(2)} Tỷ CP` : `${(totalSh/1e6).toFixed(2)} Triệu CP`;
+            
+            const topH = data.holdings && data.holdings.length > 0 ? data.holdings[0] : null;
+            if (topH) {
+                document.getElementById('shKpiTopSymbol').innerText = `${topH.symbol} (${formatNum(topH.marketValueTy || 0, 1)} Tỷ - ${topH.weight || 0}%)`;
+            } else {
+                document.getElementById('shKpiTopSymbol').innerText = '-';
+            }
+
+            // Reset search input & filter buttons
+            if (document.getElementById('shSearchInput')) document.getElementById('shSearchInput').value = '';
+            document.querySelectorAll('#shareholderModal .filter-pill').forEach(b => b.classList.remove('active'));
+            if (document.getElementById('btnShFloor-all')) document.getElementById('btnShFloor-all').classList.add('active');
+
+            renderShareholderHoldingsTable();
+            setTimeout(() => renderShareholderDonutChart(), 60);
+        }
+
+        function closeShareholderModal() {
+            const modal = document.getElementById('shareholderModal');
+            if (modal) modal.classList.remove('show');
+        }
+
+        function filterShFloor(floor) {
+            g_currentShFilterFloor = floor;
+            document.querySelectorAll('#shareholderModal .filter-pill').forEach(b => b.classList.remove('active'));
+            const btn = document.getElementById(`btnShFloor-${floor}`);
+            if (btn) btn.classList.add('active');
+            renderShareholderHoldingsTable();
+        }
+
+        function onShSearchInput(val) {
+            g_currentShSearchQuery = (val || '').toLowerCase().trim();
+            renderShareholderHoldingsTable();
+        }
+
+        function navigateToSymbol(sym) {
+            if (!sym) return;
+            closeShareholderModal();
+            window.location.href = `/company.html?v=${Date.now()}&symbol=${sym.toUpperCase()}`;
+        }
+
+        function renderShareholderHoldingsTable() {
+            if (!g_currentShData || !g_currentShData.holdings) return;
+            const tbody = document.getElementById('shTableBody');
+            
+            let list = g_currentShData.holdings;
+            if (g_currentShFilterFloor !== 'all') {
+                list = list.filter(h => (h.exchange || '').toUpperCase() === g_currentShFilterFloor);
+            }
+            if (g_currentShSearchQuery) {
+                list = list.filter(h => 
+                    (h.symbol || '').toLowerCase().includes(g_currentShSearchQuery) || 
+                    (h.companyName || '').toLowerCase().includes(g_currentShSearchQuery)
+                );
+            }
+
+            if (list.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="8" style="text-align:center; padding:20px; color:var(--text-muted);">Không tìm thấy cổ phiếu phù hợp bộ lọc.</td></tr>';
+                return;
+            }
+
+            tbody.innerHTML = list.map((h, idx) => {
+                const ratioPct = h.ownership ? (h.ownership <= 1 ? h.ownership * 100 : h.ownership) : 0;
+                const ratioPctFmt = ratioPct.toFixed(2);
+                const barWidth = Math.min(100, Math.max(4, ratioPct));
+                const valTy = h.marketValueTy || 0;
+                const weight = h.weight || 0;
+
+                return `
+                    <tr class="sh-row-interactive" onclick="navigateToSymbol('${h.symbol}')" title="Bấm để xem Hồ sơ doanh nghiệp ${h.symbol}">
+                        <td style="text-align: center; color: var(--text-muted); font-weight: 700;">${idx + 1}</td>
+                        <td>
+                            <div style="display: flex; align-items: center; gap: 8px;">
+                                <div style="width: 26px; height: 26px; border-radius: 50%; background: #1a2233; border: 1px solid rgba(0,229,255,0.3); display: flex; align-items: center; justify-content: center; font-size: 10px; font-weight: 800; color: #00e5ff; overflow: hidden; flex-shrink: 0;">
+                                    <img src="https://cdn.simplize.vn/simplizevn/logo/${h.symbol}.jpeg" onerror="this.style.display='none'; this.nextElementSibling.style.display='block';" style="width:100%; height:100%; object-fit:contain;">
+                                    <span style="display:none;">${h.symbol.substring(0,2)}</span>
+                                </div>
+                                <div>
+                                    <div style="font-weight: 800; color: var(--accent-cyan); font-size: 13px;">${h.symbol} <span style="font-size: 10px; color: #94a3b8; font-weight: normal;">↗</span></div>
+                                    <div style="font-size: 11px; color: #cbd5e1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 220px;">${h.companyName}</div>
+                                </div>
+                            </div>
+                        </td>
+                        <td style="text-align: center;">
+                            <span class="pill-exchange" style="font-size: 10px; padding: 2px 6px;">${h.exchange || 'HOSE'}</span>
+                        </td>
+                        <td style="text-align: right; font-family: var(--font-mono); font-weight: 700; color: #ffffff;">
+                            ${formatSharesTriệu(h.shares || 0)}
+                        </td>
+                        <td style="text-align: right; font-family: var(--font-mono);">
+                            <div style="font-weight: 800; color: var(--accent-green); margin-bottom: 2px;">${ratioPctFmt}%</div>
+                            <div class="progress-bar-bg" style="width: 65px; margin-left: auto;">
+                                <div class="progress-bar-fill" style="width: ${barWidth}%;"></div>
+                            </div>
+                        </td>
+                        <td style="text-align: right; font-family: var(--font-mono); font-weight: 800; color: #ffd700;">
+                            ${formatNum(valTy, 1)} Tỷ
+                        </td>
+                        <td style="text-align: right; font-family: var(--font-mono); color: #94a3b8;">
+                            ${weight.toFixed(1)}%
+                        </td>
+                        <td style="text-align: center; font-family: var(--font-mono); color: var(--text-muted); font-size: 11px;">
+                            ${formatDate(h.updatedDate)}
+                        </td>
+                    </tr>
+                `;
+            }).join('');
+        }
+
+        function renderShareholderDonutChart() {
+            if (!g_currentShData || !g_currentShData.holdings) return;
+            const canvas = document.getElementById('chartShPortfolioDonut');
+            if (!canvas) return;
+
+            if (g_shDonutChart) {
+                try { g_shDonutChart.destroy(); } catch (e) {}
+                g_shDonutChart = null;
+            }
+
+            const holdings = g_currentShData.holdings;
+            const top5 = holdings.slice(0, 5);
+            const others = holdings.slice(5);
+            
+            const labels = top5.map(h => h.symbol);
+            const dataValues = top5.map(h => {
+                const v = h.marketValueTy != null ? h.marketValueTy : ((h.shares || 0) / 1e6);
+                return Math.round(Number(v) * 10) / 10;
+            });
+            
+            if (others.length > 0) {
+                const otherVal = others.reduce((sum, h) => {
+                    const v = h.marketValueTy != null ? h.marketValueTy : ((h.shares || 0) / 1e6);
+                    return sum + Number(v);
+                }, 0);
+                labels.push(`Khác (${others.length} mã)`);
+                dataValues.push(Math.round(otherVal * 10) / 10);
+            }
+
+            const totalVal = dataValues.reduce((a, b) => a + b, 0);
+            const colors = ['#00f2fe', '#3b82f6', '#10b981', '#f59e0b', '#8b5cf6', '#64748b'];
+
+            try {
+                g_shDonutChart = new Chart(canvas, {
+                    type: 'doughnut',
+                    data: {
+                        labels: labels,
+                        datasets: [{
+                            data: dataValues,
+                            backgroundColor: colors.slice(0, labels.length),
+                            borderColor: '#111726',
+                            borderWidth: 2
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        cutout: '62%',
+                        plugins: {
+                            legend: { display: false },
+                            tooltip: {
+                                callbacks: {
+                                    label: function(c) {
+                                        const val = c.raw || 0;
+                                        const pct = totalVal > 0 ? ((val / totalVal) * 100).toFixed(1) : 0;
+                                        return ` ${c.label}: ${formatNum(val, 1)} Tỷ (${pct}%)`;
+                                    }
+                                }
+                            }
+                        }
+                    }
+                });
+            } catch (err) {
+                console.error("Error creating shareholder donut chart:", err);
+            }
+
+            const legendBox = document.getElementById('shPortfolioBreakdownLegend');
+            if (legendBox) {
+                legendBox.innerHTML = labels.map((lbl, i) => {
+                    const val = dataValues[i] || 0;
+                    const pct = totalVal > 0 ? ((val / totalVal) * 100).toFixed(1) : '0';
+                    return `
+                        <div style="display: flex; justify-content: space-between; align-items: center; padding: 4px 0; border-bottom: 1px solid rgba(255,255,255,0.04);">
+                            <div style="display: flex; align-items: center; gap: 6px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
+                                <span style="width: 8px; height: 8px; border-radius: 50%; background: ${colors[i]}; display: inline-block; flex-shrink: 0;"></span>
+                                <span style="color: #cbd5e1; font-weight: 600;">${lbl}</span>
+                            </div>
+                            <div style="text-align: right; font-family: var(--font-mono); white-space: nowrap;">
+                                <span style="color: #fff; font-weight: 700;">${formatNum(val, 1)} Tỷ</span>
+                                <span style="color: var(--text-muted); font-size: 10px; margin-left: 4px;">(${pct}%)</span>
+                            </div>
+                        </div>
+                    `;
+                }).join('');
+            }
+        }
+
+    </script>
+    <style>
+        :root {
+            --bg-base: #0a0d14;
+            --bg-surface: #111622;
+            --bg-card: rgba(18, 24, 38, 0.85);
+            --bg-card-hover: rgba(26, 35, 54, 0.95);
+            --bg-subcard: rgba(255, 255, 255, 0.025);
+            --border-subtle: rgba(255, 255, 255, 0.07);
+            --border-highlight: rgba(0, 229, 255, 0.25);
+            --text-main: #f0f6fc;
+            --text-secondary: #94a3b8;
+            --text-muted: #64748b;
+            --accent-cyan: #00f2fe;
+            --accent-blue: #3b82f6;
+            --accent-indigo: #6366f1;
+            --accent-purple: #8b5cf6;
+            --accent-green: #10b981;
+            --accent-red: #ef4444;
+            --accent-amber: #f59e0b;
+            --font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Inter, Helvetica, Arial, sans-serif;
+            --font-mono: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, monospace;
+        }
+
+        * { box-sizing: border-box; }
+        body {
+            font-family: var(--font-family);
+            background-color: var(--bg-base);
+            color: var(--text-main);
+            margin: 0;
+            padding: 12px 14px;
+            overflow-x: hidden;
+            font-size: 13px;
+            letter-spacing: -0.01em;
+        }
+
+        /* Scrollbars */
+        ::-webkit-scrollbar { width: 5px; height: 5px; }
+        ::-webkit-scrollbar-thumb { background: rgba(255, 255, 255, 0.15); border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: rgba(255, 255, 255, 0.28); }
+        ::-webkit-scrollbar-track { background: transparent; }
+
+        .container { max-width: 1600px; margin: 0 auto; width: 100%; }
+
+        /* 3-COLUMN PANORAMIC GRID */
+        .panoramic-grid-layout {
+            display: grid;
+            grid-template-columns: 35% 37% calc(28% - 24px);
+            gap: 12px;
+            align-items: start;
+        }
+        @media (max-width: 1280px) {
+            .panoramic-grid-layout {
+                grid-template-columns: 48% calc(52% - 12px);
+            }
+        }
+        @media (max-width: 860px) {
+            .panoramic-grid-layout {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        /* 2-COLUMN WIDE GRID FOR TAB 3 */
+        .news-events-split-grid {
+            display: grid;
+            grid-template-columns: 48% calc(52% - 14px);
+            gap: 14px;
+            align-items: start;
+        }
+        @media (max-width: 1024px) {
+            .news-events-split-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        /* ================= HERO HEADER & METRIC CARDS ================= */
+        .hero-banner {
+            background: linear-gradient(135deg, #111726 0%, #0d121e 100%);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            border-radius: 12px;
+            padding: 16px 20px;
+            margin-bottom: 12px;
+            box-shadow: 0 8px 30px rgba(0, 0, 0, 0.4);
+            position: relative;
+            overflow: hidden;
+        }
+        .hero-banner::before {
+            content: '';
+            position: absolute;
+            top: -40px; right: -40px;
+            width: 160px; height: 160px;
+            background: radial-gradient(circle, rgba(0, 242, 254, 0.12) 0%, transparent 70%);
+            pointer-events: none;
+        }
+
+        .hero-top-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 16px;
+            margin-bottom: 12px;
+        }
+        .hero-brand-group {
+            display: flex;
+            align-items: center;
+            gap: 14px;
+            flex: 1;
+            min-width: 0;
+        }
+        .hero-logo-box {
+            width: 48px;
+            height: 48px;
+            border-radius: 50%;
+            background: #ffffff;
+            border: 2px solid rgba(0, 242, 254, 0.35);
+            box-shadow: 0 0 14px rgba(0, 242, 254, 0.2);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden;
+            flex-shrink: 0;
+            padding: 2px;
+        }
+        .hero-logo-img {
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
+            border-radius: 50%;
+        }
+        .hero-logo-fallback {
+            width: 100%;
+            height: 100%;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
+            color: #00f2fe;
+            font-weight: 900;
+            font-family: var(--font-mono);
+            font-size: 14px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .hero-name-block {
+            flex: 1;
+            min-width: 0;
+        }
+        .hero-title-line {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            flex-wrap: wrap;
+            margin-bottom: 4px;
+        }
+        .hero-symbol-text {
+            font-size: 20px;
+            font-weight: 900;
+            color: #00f2fe;
+            font-family: var(--font-mono);
+            letter-spacing: 0.5px;
+        }
+        .hero-company-name {
+            font-size: 14.5px;
+            font-weight: 700;
+            color: #ffffff;
+            line-height: 1.35;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            letter-spacing: -0.01em;
+        }
+        .hero-sub-meta {
+            font-size: 11px;
+            color: var(--text-muted);
+            margin-top: 3px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .hero-pill {
+            font-size: 11px;
+            font-weight: 700;
+            padding: 2px 8px;
+            border-radius: 5px;
+            letter-spacing: 0.2px;
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+        }
+        .pill-exchange {
+            background: rgba(59, 130, 246, 0.15);
+            color: #60a5fa;
+            border: 1px solid rgba(59, 130, 246, 0.3);
+        }
+        .pill-sector {
+            background: rgba(99, 102, 241, 0.18);
+            color: #a5b4fc;
+            border: 1px solid rgba(99, 102, 241, 0.35);
+        }
+        .pill-status {
+            background: rgba(16, 185, 129, 0.1);
+            color: #34d399;
+            border: 1px solid rgba(16, 185, 129, 0.25);
+        }
+
+        .btn-action-refresh {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid var(--border-subtle);
+            color: var(--text-secondary);
+            font-size: 12px;
+            font-weight: 600;
+            padding: 7px 14px;
+            border-radius: 8px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            transition: all 0.2s ease;
+            backdrop-filter: blur(8px);
+        }
+        .btn-action-refresh:hover {
+            color: #ffffff;
+            background: rgba(255, 255, 255, 0.1);
+            border-color: rgba(255, 255, 255, 0.25);
+            transform: translateY(-1px);
+        }
+
+        /* METRICS STRIP */
+        .metrics-strip {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+            gap: 8px;
+            margin-top: 10px;
+            padding-top: 10px;
+            border-top: 1px solid rgba(255, 255, 255, 0.06);
+        }
+        .metric-card {
+            background: rgba(255, 255, 255, 0.025);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            border-radius: 8px;
+            padding: 8px 10px;
+            display: flex;
+            flex-direction: column;
+            gap: 2px;
+            transition: all 0.15s ease;
+        }
+        .metric-card:hover {
+            background: rgba(255, 255, 255, 0.05);
+            border-color: rgba(255, 255, 255, 0.12);
+        }
+        .metric-label {
+            font-size: 11px;
+            color: var(--text-muted);
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+        .metric-value {
+            font-size: 13px;
+            font-weight: 700;
+            color: #ffffff;
+            font-family: var(--font-mono);
+            letter-spacing: -0.01em;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        /* ================= MODERN SEGMENTED TABS ================= */
+        .nav-segmented-bar {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            background: var(--bg-surface);
+            border: 1px solid var(--border-subtle);
+            border-radius: 10px;
+            padding: 4px 6px;
+            margin-bottom: 12px;
+            overflow-x: auto;
+        }
+        .nav-tab-pill {
+            background: transparent;
+            border: none;
+            color: var(--text-secondary);
+            font-size: 12.5px;
+            font-weight: 600;
+            padding: 8px 14px;
+            border-radius: 7px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            white-space: nowrap;
+            transition: all 0.18s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        .nav-tab-pill:hover {
+            color: #ffffff;
+            background: rgba(255, 255, 255, 0.04);
+        }
+        .nav-tab-pill.active {
+            background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%);
+            color: #ffffff;
+            font-weight: 700;
+            box-shadow: 0 4px 14px rgba(37, 99, 235, 0.35);
+        }
+        .nav-tab-badge {
+            font-size: 10px;
+            background: rgba(0, 0, 0, 0.35);
+            padding: 1px 6px;
+            border-radius: 10px;
+            font-weight: 700;
+        }
+
+        /* TAB PANES */
+        .tab-pane { display: none; }
+        .tab-pane.active { display: block; }
+
+        /* 2-COLUMN MAIN LAYOUT */
+        .grid-split-layout {
+            display: grid;
+            grid-template-columns: 63% calc(37% - 12px);
+            gap: 12px;
+            align-items: start;
+        }
+        @media (max-width: 1024px) {
+            .grid-split-layout { grid-template-columns: 1fr; }
+        }
+
+        /* CARDS */
+        .glass-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border-subtle);
+            border-radius: 10px;
+            padding: 14px 16px;
+            margin-bottom: 12px;
+            backdrop-filter: blur(12px);
+            box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
+        }
+        .card-header-title {
+            font-size: 13.5px;
+            font-weight: 700;
+            color: #ffffff;
+            display: flex;
+            align-items: center;
+            gap: 7px;
+            margin-bottom: 12px;
+            letter-spacing: -0.01em;
+        }
+        .card-dot-indicator {
+            width: 6px;
+            height: 6px;
+            border-radius: 50%;
+            background: var(--accent-cyan);
+            box-shadow: 0 0 8px var(--accent-cyan);
+            display: inline-block;
+        }
+
+        /* DUAL INFO SUBGRID (THÔNG TIN CƠ BẢN & NIÊM YẾT) */
+        .f-info-subgrid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 16px;
+            margin-bottom: 16px;
+            background: rgba(255, 255, 255, 0.02);
+            border: 1px solid var(--border-subtle);
+            border-radius: 8px;
+            padding: 12px 14px;
+        }
+        @media (max-width: 768px) {
+            .f-info-subgrid { grid-template-columns: 1fr; }
+        }
+        .f-info-col-title {
+            font-size: 12px;
+            font-weight: 700;
+            color: #c9d1d9;
+            margin-bottom: 8px;
+            padding-bottom: 4px;
+            border-bottom: 1px dashed rgba(255, 255, 255, 0.1);
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+        .f-info-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: baseline;
+            padding: 4.5px 0;
+            font-size: 12px;
+        }
+        .f-info-label {
+            color: var(--text-secondary);
+        }
+        .f-info-value {
+            font-weight: 600;
+            color: #ffffff;
+            text-align: right;
+            font-family: var(--font-mono);
+        }
+
+        /* STORYTELLING / HIGHLIGHT BOX */
+        .story-highlight-box {
+            background: linear-gradient(135deg, rgba(37, 99, 235, 0.08) 0%, rgba(99, 102, 241, 0.04) 100%);
+            border: 1px solid rgba(59, 130, 246, 0.2);
+            border-radius: 8px;
+            padding: 12px 14px;
+            margin-bottom: 14px;
+            color: #e2e8f0;
+            line-height: 1.65;
+            font-size: 12.5px;
+        }
+
+        /* VERTICAL GLOWING TIMELINE */
+        .timeline-vertical {
+            position: relative;
+            padding-left: 20px;
+            margin: 10px 0 16px 6px;
+        }
+        .timeline-vertical::before {
+            content: '';
+            position: absolute;
+            left: 4px;
+            top: 6px;
+            bottom: 6px;
+            width: 2px;
+            background: linear-gradient(180deg, var(--accent-cyan) 0%, var(--accent-blue) 60%, rgba(255,255,255,0.05) 100%);
+            border-radius: 1px;
+        }
+        .timeline-node {
+            position: relative;
+            margin-bottom: 14px;
+        }
+        .timeline-node:last-child { margin-bottom: 0; }
+        .timeline-dot {
+            position: absolute;
+            left: -20px;
+            top: 4px;
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            background: #0a0d14;
+            border: 2px solid var(--accent-cyan);
+            box-shadow: 0 0 6px var(--accent-cyan);
+        }
+        .timeline-content {
+            background: rgba(255, 255, 255, 0.02);
+            border: 1px solid rgba(255, 255, 255, 0.04);
+            border-radius: 6px;
+            padding: 8px 12px;
+            color: #cbd5e1;
+            line-height: 1.6;
+            font-size: 12.5px;
+        }
+
+        /* BUSINESS LINE CARDS GRID (MODERN CHIP CLOUD) */
+        .biz-chips-container {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+            gap: 8px;
+        }
+        .biz-chip-card {
+            background: rgba(255, 255, 255, 0.025);
+            border: 1px solid rgba(255, 255, 255, 0.06);
+            border-left: 3px solid var(--accent-cyan);
+            border-radius: 8px;
+            padding: 9px 12px;
+            display: flex;
+            align-items: flex-start;
+            gap: 8px;
+            transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        .biz-chip-card:hover {
+            background: rgba(255, 255, 255, 0.05);
+            border-color: rgba(0, 242, 254, 0.3);
+            border-left-color: var(--accent-cyan);
+            transform: translateY(-2px);
+            box-shadow: 0 4px 14px rgba(0, 0, 0, 0.3);
+        }
+        .biz-chip-icon {
+            font-size: 15px;
+            line-height: 1.2;
+            flex-shrink: 0;
+            margin-top: 1px;
+        }
+        .biz-chip-text {
+            font-size: 12px;
+            color: #e2e8f0;
+            line-height: 1.5;
+            font-weight: 500;
+        }
+        .btn-expand-biz {
+            background: rgba(255, 255, 255, 0.04);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            color: var(--accent-cyan);
+            font-size: 11.5px;
+            font-weight: 700;
+            padding: 7px 18px;
+            border-radius: 20px;
+            cursor: pointer;
+            transition: all 0.15s ease;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+        }
+        .btn-expand-biz:hover {
+            background: rgba(0, 242, 254, 0.12);
+            border-color: var(--accent-cyan);
+            color: #ffffff;
+            transform: translateY(-1px);
+        }
+
+        /* LEADERSHIP CARDS */
+        .leader-row-card {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 8px 10px;
+            border-radius: 8px;
+            border: 1px solid transparent;
+            transition: all 0.15s ease;
+            margin-bottom: 4px;
+        }
+        .leader-row-card:hover {
+            background: rgba(255, 255, 255, 0.03);
+            border-color: rgba(255, 255, 255, 0.08);
+        }
+        .leader-avatar-neon {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            object-fit: cover;
+            background: #1e293b;
+            border: 2px solid rgba(0, 242, 254, 0.4);
+            box-shadow: 0 0 10px rgba(0, 242, 254, 0.15);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 14px;
+            font-weight: 700;
+            color: #ffffff;
+            flex-shrink: 0;
+        }
+        .leader-details {
+            flex: 1;
+            min-width: 0;
+        }
+        .leader-fullname {
+            font-weight: 700;
+            color: #ffffff;
+            font-size: 13px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        .leader-position-tag {
+            font-size: 11.5px;
+            color: var(--accent-cyan);
+            margin-top: 1px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        /* TABLES */
+        .table-responsive-box {
+            width: 100%;
+            overflow-x: auto;
+            border: 1px solid var(--border-subtle);
+            border-radius: 8px;
+            margin-top: 6px;
+            background: rgba(0, 0, 0, 0.15);
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 12px;
+            text-align: left;
+        }
+        th {
+            background: rgba(255, 255, 255, 0.04);
+            color: var(--text-secondary);
+            font-weight: 700;
+            padding: 9px 12px;
+            border-bottom: 1px solid var(--border-subtle);
+            white-space: nowrap;
+            letter-spacing: 0.2px;
+        }
+        td {
+            padding: 9px 12px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+            color: var(--text-main);
+        }
+        tr:last-child td { border-bottom: none; }
+        tr:hover td { background: rgba(255, 255, 255, 0.02); }
+
+        /* VISUAL OWNERSHIP PROGRESS BAR */
+        .ownership-progress-wrap {
+            display: flex;
+            align-items: center;
+            justify-content: flex-end;
+            gap: 8px;
+        }
+        .progress-track {
+            width: 65px;
+            height: 5px;
+            background: rgba(255, 255, 255, 0.08);
+            border-radius: 3px;
+            overflow: hidden;
+        }
+        .progress-fill-bar {
+            height: 100%;
+            background: linear-gradient(90deg, #00f2fe 0%, #3b82f6 100%);
+            border-radius: 3px;
+        }
+
+        /* BADGES */
+        .badge-tag {
+            display: inline-flex;
+            align-items: center;
+            padding: 2px 7px;
+            border-radius: 4px;
+            font-size: 11px;
+            font-weight: 700;
+            white-space: nowrap;
+        }
+        .badge-buy { background: rgba(16, 185, 129, 0.15); color: #10b981; border: 1px solid rgba(16, 185, 129, 0.3); }
+        .badge-sell { background: rgba(239, 68, 68, 0.15); color: #ef4444; border: 1px solid rgba(239, 68, 68, 0.3); }
+
+        /* FILTER PILLS & SELECTORS */
+        .filter-ribbon {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            overflow-x: auto;
+            padding-bottom: 2px;
+        }
+        .filter-pill {
+            background: rgba(255, 255, 255, 0.04);
+            border: 1px solid var(--border-subtle);
+            color: var(--text-secondary);
+            font-size: 11.5px;
+            font-weight: 600;
+            padding: 4px 12px;
+            border-radius: 20px;
+            cursor: pointer;
+            white-space: nowrap;
+            transition: all 0.15s ease;
+        }
+        .filter-pill:hover {
+            color: #ffffff;
+            background: rgba(255, 255, 255, 0.08);
+        }
+        .filter-pill.active {
+            background: rgba(99, 102, 241, 0.2);
+            color: #a5b4fc;
+            border-color: #6366f1;
+            font-weight: 700;
+        }
+
+        .select-dark {
+            background: #1e293b;
+            border: 1px solid var(--border-subtle);
+            color: #ffffff;
+            font-size: 12px;
+            font-weight: 600;
+            padding: 6px 12px;
+            border-radius: 6px;
+            cursor: pointer;
+            outline: none;
+        }
+        .select-dark:focus {
+            border-color: var(--accent-blue);
+        }
+
+        /* PAGINATION BAR */
+        .pagination-container {
+            display: flex;
+            align-items: center;
+            justify-content: flex-end;
+            gap: 10px;
+            margin-top: 10px;
+            padding-top: 8px;
+            border-top: 1px solid var(--border-subtle);
+            font-size: 11.5px;
+            color: var(--text-secondary);
+        }
+        .pg-btn {
+            background: rgba(255, 255, 255, 0.04);
+            border: 1px solid var(--border-subtle);
+            color: var(--text-main);
+            width: 28px;
+            height: 28px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 6px;
+            cursor: pointer;
+            user-select: none;
+            transition: all 0.15s;
+        }
+        .pg-btn:hover:not(:disabled) {
+            background: var(--accent-blue);
+            color: #ffffff;
+            border-color: var(--accent-blue);
+        }
+        .pg-btn:disabled {
+            opacity: 0.3;
+            cursor: not-allowed;
+        }
+
+        /* NEWS MAGAZINE CARDS */
+        .news-article-card {
+            display: flex;
+            gap: 14px;
+            padding: 12px 10px;
+            border-radius: 8px;
+            border-bottom: 1px solid var(--border-subtle);
+            transition: all 0.2s ease;
+        }
+        .news-article-card:hover {
+            background: rgba(255, 255, 255, 0.02);
+            transform: translateX(2px);
+        }
+        .news-article-card:last-child {
+            border-bottom: none;
+        }
+        .news-img-cover {
+            width: 125px;
+            height: 82px;
+            border-radius: 8px;
+            object-fit: cover;
+            background: #1e293b;
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            flex-shrink: 0;
+            cursor: pointer;
+            transition: transform 0.2s;
+        }
+        .news-img-cover:hover {
+            transform: scale(1.03);
+        }
+        .news-body-content {
+            flex: 1;
+            min-width: 0;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+        }
+        .news-headline {
+            font-size: 13.5px;
+            font-weight: 700;
+            color: #ffffff;
+            line-height: 1.4;
+            margin-bottom: 4px;
+            cursor: pointer;
+            transition: color 0.15s;
+        }
+        .news-headline:hover {
+            color: var(--accent-cyan);
+        }
+        .news-snippet {
+            font-size: 12px;
+            color: var(--text-secondary);
+            line-height: 1.5;
+            display: -webkit-box;
+            -webkit-line-clamp: 2;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
+            margin-bottom: 6px;
+        }
+        .news-meta-footer {
+            font-size: 11px;
+            color: var(--text-muted);
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            flex-wrap: wrap;
+        }
+        .btn-link-action {
+            background: transparent;
+            border: none;
+            color: var(--accent-cyan);
+            font-size: 11.5px;
+            font-weight: 600;
+            cursor: pointer;
+            padding: 0;
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+        }
+        .btn-link-action:hover {
+            text-decoration: underline;
+        }
+
+        /* MODAL POPUP */
+        .modal-overlay {
+            display: none;
+            position: fixed;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(0, 0, 0, 0.8);
+            backdrop-filter: blur(8px);
+            z-index: 1000;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+        .modal-overlay.open { display: flex; }
+        .modal-window {
+            background: #131a29;
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            border-radius: 12px;
+            max-width: 680px;
+            width: 100%;
+            max-height: 85vh;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            box-shadow: 0 16px 40px rgba(0, 0, 0, 0.8);
+        }
+        .modal-top {
+            padding: 14px 18px;
+            border-bottom: 1px solid var(--border-subtle);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+        .modal-close {
+            background: transparent;
+            border: none;
+            color: var(--text-muted);
+            font-size: 22px;
+            cursor: pointer;
+            padding: 0;
+            line-height: 1;
+        }
+        .modal-close:hover { color: #ffffff; }
+        .modal-content-area {
+            padding: 16px 18px;
+            overflow-y: auto;
+            font-size: 13px;
+            color: #cbd5e1;
+            line-height: 1.7;
+        }
+        .modal-ai-box {
+            background: rgba(99, 102, 241, 0.08);
+            border: 1px solid rgba(99, 102, 241, 0.25);
+            border-radius: 8px;
+            padding: 12px 14px;
+            margin-bottom: 14px;
+        }
+
+        /* LOADING */
+        .loading-state-box {
+            text-align: center;
+            padding: 70px 20px;
+            color: var(--text-secondary);
+        }
+        .spinner-ring {
+            width: 36px;
+            height: 36px;
+            border: 3px solid rgba(255,255,255,0.08);
+            border-radius: 50%;
+            border-top-color: var(--accent-cyan);
+            animation: spin 0.8s linear infinite;
+            margin: 0 auto 12px auto;
+        }
+        @keyframes spin { 100% { transform: rotate(360deg); } }
+    
+        /* ================= SHAREHOLDER PORTFOLIO MODAL ================= */
+        #shareholderModal {
+            position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(0, 0, 0, 0.85);
+            backdrop-filter: blur(12px);
+            z-index: 2147483647;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            opacity: 0;
+            transition: opacity 0.2s ease;
+        }
+        #shareholderModal.show {
+            display: flex;
+            opacity: 1;
+        }
+        .sh-modal-dialog {
+            width: 92vw;
+            max-width: 1280px;
+            height: 88vh;
+            background: #0d121d;
+            border: 1px solid rgba(0, 229, 255, 0.35);
+            border-radius: 14px;
+            box-shadow: 0 25px 70px rgba(0, 0, 0, 0.95), 0 0 30px rgba(0, 229, 255, 0.15);
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            animation: modalPop 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+        .sh-modal-header {
+            padding: 14px 22px;
+            background: #131a29;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-shrink: 0;
+        }
+        .sh-header-left {
+            display: flex;
+            align-items: center;
+            gap: 14px;
+        }
+        .sh-avatar-icon {
+            width: 44px;
+            height: 44px;
+            border-radius: 50%;
+            background: rgba(0, 229, 255, 0.1);
+            border: 1px solid rgba(0, 229, 255, 0.3);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 22px;
+            color: #00e5ff;
+        }
+        .sh-name-title {
+            font-size: 17px;
+            font-weight: 800;
+            color: #ffffff;
+            letter-spacing: 0.2px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .sh-type-tag {
+            font-size: 11px;
+            font-weight: 700;
+            padding: 2px 8px;
+            border-radius: 4px;
+            background: rgba(41, 121, 255, 0.15);
+            color: #448aff;
+            border: 1px solid rgba(41, 121, 255, 0.3);
+        }
+        .sh-btn-close {
+            background: transparent;
+            border: none;
+            color: #94a3b8;
+            font-size: 26px;
+            cursor: pointer;
+            line-height: 1;
+            padding: 0 4px;
+            transition: color 0.15s;
+        }
+        .sh-btn-close:hover { color: #ffffff; }
+
+        .sh-kpi-ribbon {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 10px;
+            padding: 12px 22px;
+            background: #090d15;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+            flex-shrink: 0;
+        }
+        .sh-kpi-card {
+            background: rgba(255, 255, 255, 0.025);
+            border: 1px solid rgba(255, 255, 255, 0.06);
+            border-radius: 8px;
+            padding: 8px 14px;
+        }
+        .sh-kpi-label {
+            font-size: 11px;
+            color: #94a3b8;
+            text-transform: uppercase;
+            font-weight: 600;
+            margin-bottom: 3px;
+        }
+        .sh-kpi-val {
+            font-size: 15px;
+            font-weight: 800;
+            color: #ffffff;
+            font-family: var(--font-mono);
+        }
+
+        .sh-body-split {
+            display: grid;
+            grid-template-columns: 1fr 340px;
+            gap: 14px;
+            padding: 14px 22px;
+            flex: 1;
+            overflow-y: auto;
+            align-items: start;
+        }
+        @media (max-width: 1024px) {
+            .sh-body-split { grid-template-columns: 1fr; }
+        }
+
+        .sh-holding-tag {
+            background: rgba(0, 229, 255, 0.1);
+            color: #00e5ff;
+            font-size: 10.5px;
+            font-weight: 700;
+            padding: 2px 7px;
+            border-radius: 4px;
+            margin-left: 8px;
+            border: 1px solid rgba(0, 229, 255, 0.25);
+            cursor: pointer;
+            transition: all 0.2s;
+            display: inline-flex;
+            align-items: center;
+            gap: 3px;
+        }
+        .sh-holding-tag:hover {
+            background: rgba(0, 229, 255, 0.25);
+            border-color: #00e5ff;
+            box-shadow: 0 0 8px rgba(0, 229, 255, 0.3);
+        }
+        .sh-row-interactive {
+            cursor: pointer;
+            transition: background 0.15s;
+        }
+        .sh-row-interactive:hover {
+            background: rgba(0, 229, 255, 0.08) !important;
+        }
+
+    </style>
+</head>
+<body>
+    <div class="container">
+        
+        <!-- LOADING SPINNER -->
+        <div id="loadingBox" class="loading-state-box">
+            <div class="spinner-ring"></div>
+            <div style="font-weight: 600; color: #ffffff; margin-bottom: 4px;">Đang tải dữ liệu hồ sơ doanh nghiệp...</div>
+            <div style="font-size: 11.5px; color: var(--text-muted);">Trích xuất toàn bộ dữ liệu cấu trúc và lịch sử tài chính</div>
+        </div>
+
+        <!-- MAIN APP -->
+        <div id="mainContent" style="display: none;">
+            
+            <!-- HERO HEADER WITH KPI METRIC STRIP -->
+            <div class="hero-banner">
+                <div class="hero-top-row">
+                    <div class="hero-brand-group">
+                        <div class="hero-logo-box">
+                            <img id="headerLogoImg" class="hero-logo-img" alt="Logo" onerror="if(typeof handleLogoError === 'function') handleLogoError(this);" />
+                            <div id="headerLogoFallback" class="hero-logo-fallback" style="display:none;">-</div>
+                        </div>
+                        <div class="hero-name-block">
+                            <div class="hero-title-line">
+                                <span class="hero-symbol-text" id="headerSymbol">ACB</span>
+                                <span class="hero-pill pill-exchange" id="headerExchange">HOSE</span>
+                                <span class="hero-pill pill-sector" id="headerSector">Ngân hàng</span>
+                                <span class="hero-pill pill-status">🟢 Đang niêm yết</span>
+                            </div>
+                            <div class="hero-company-name" id="headerCompanyName">-</div>
+                            <div class="hero-sub-meta" id="headerIcbCode">Mã ngành ICB: -</div>
+                        </div>
+                    </div>
+
+                    <div>
+                        <button class="btn-action-refresh" onclick="loadCompanyData(true)">
+                            <span>🔄</span> Làm mới dữ liệu
+                        </button>
+                    </div>
+                </div>
+
+                <!-- QUICK METRICS RIBBON -->
+                <div class="metrics-strip">
+                    <div class="metric-card">
+                        <div class="metric-label">💰 Vốn Điều Lệ</div>
+                        <div class="metric-value" style="color: var(--accent-cyan);" id="ribbonCharterCap">-</div>
+                    </div>
+                    <div class="metric-card">
+                        <div class="metric-label">🏛️ Năm Thành Lập</div>
+                        <div class="metric-value" id="ribbonFoundingYear">-</div>
+                    </div>
+                    <div class="metric-card">
+                        <div class="metric-label">👥 Nhân Sự</div>
+                        <div class="metric-value" id="ribbonEmployees">-</div>
+                    </div>
+                    <div class="metric-card">
+                        <div class="metric-label">🏢 Chi Nhánh / Cty Con</div>
+                        <div class="metric-value" id="ribbonBranches">-</div>
+                    </div>
+                    <div class="metric-card">
+                        <div class="metric-label">📈 CP Đang Lưu Hành</div>
+                        <div class="metric-value" id="ribbonShares">-</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- NAVIGATION SEGMENTED TABS -->
+            <div class="nav-segmented-bar">
+                <button class="nav-tab-pill active" onclick="switchNavTab('profile')">
+                    <span>🏢</span> Hồ Sơ Doanh Nghiệp
+                </button>
+                <button class="nav-tab-pill" onclick="switchNavTab('shareholders')">
+                    <span>👥</span> Cổ Đông & GDNB <span class="nav-tab-badge" id="badgeShareholders">0</span>
+                </button>
+                <button class="nav-tab-pill" onclick="switchNavTab('news-events')">
+                    <span>📰</span> Tin Tức & Sự Kiện <span class="nav-tab-badge" id="badgeNewsEvents">0</span>
+                </button>
+                <button class="nav-tab-pill" onclick="switchNavTab('capitals')">
+                    <span>📈</span> Lịch Sử Tăng Vốn <span class="nav-tab-badge" id="badgeCapitals">0</span>
+                </button>
+            </div>
+
+            <!-- ================= TAB 1: TỔNG QUAN DOANH NGHIỆP (PANORAMIC DASHBOARD) ================= -->
+            <div id="pane-profile" class="tab-pane active">
+                <div class="panoramic-grid-layout">
+                    
+                    <!-- CỘT 1: HỒ SƠ PHÁP LÝ & CƠ BẢN (35%) -->
+                    <div>
+                        <div class="glass-card">
+                            <div class="card-header-title">
+                                <span class="card-dot-indicator"></span> Thông tin cơ bản & Niêm yết
+                            </div>
+                            <div class="f-info-subgrid" style="margin-bottom: 12px;">
+                                <div>
+                                    <div class="f-info-col-title"><span class="card-dot-indicator"></span> Thông tin cơ bản</div>
+                                    <div class="f-info-row"><span class="f-info-label">Mã CK</span><span class="f-info-value" id="valSymbol">-</span></div>
+                                    <div class="f-info-row"><span class="f-info-label">Mã ngành ICB</span><span class="f-info-value" id="valIcbCode">-</span></div>
+                                    <div class="f-info-row"><span class="f-info-label">Năm thành lập</span><span class="f-info-value" id="valFoundingYear">-</span></div>
+                                    <div class="f-info-row"><span class="f-info-label">Vốn điều lệ</span><span class="f-info-value" style="color: var(--accent-cyan);" id="valCharterCap">-</span></div>
+                                    <div class="f-info-row"><span class="f-info-label">Nhân sự</span><span class="f-info-value" id="valEmployees">-</span></div>
+                                    <div class="f-info-row"><span class="f-info-label">Chi nhánh</span><span class="f-info-value" id="valBranches">-</span></div>
+                                    <div class="f-info-row"><span class="f-info-label">Cty con/LK</span><span class="f-info-value" id="valSubsCount">-</span></div>
+                                    <div class="f-info-row"><span class="f-info-label">Đại diện PL</span><span class="f-info-value" id="valLegalRep">-</span></div>
+                                </div>
+                                <div>
+                                    <div class="f-info-col-title"><span class="card-dot-indicator"></span> Thông tin niêm yết</div>
+                                    <div class="f-info-row"><span class="f-info-label">Ngày niêm yết</span><span class="f-info-value" id="valListedDate">-</span></div>
+                                    <div class="f-info-row"><span class="f-info-label">Nơi niêm yết</span><span class="f-info-value" id="valExchange">-</span></div>
+                                    <div class="f-info-row"><span class="f-info-label">Giá chào sàn</span><span class="f-info-value" id="valInitialPrice">-</span></div>
+                                    <div class="f-info-row"><span class="f-info-label">Giá ngày GD 1</span><span class="f-info-value" id="valFirstDayPrice">-</span></div>
+                                    <div class="f-info-row"><span class="f-info-label">Phát hành cuối</span><span class="f-info-value" id="valLastIssuedDate">-</span></div>
+                                    <div class="f-info-row"><span class="f-info-label">KL NY đầu</span><span class="f-info-value" id="valInitialVol">-</span></div>
+                                    <div class="f-info-row"><span class="f-info-label">KL NY hiện tại</span><span class="f-info-value" id="valListingVol">-</span></div>
+                                    <div class="f-info-row"><span class="f-info-label">KL Lưu hành</span><span class="f-info-value" id="valSharesOutstanding">-</span></div>
+                                </div>
+                            </div>
+
+                            <div style="margin-top: 14px;" id="blockContact">
+                                <div style="font-weight: 700; font-size: 12px; color: #cbd5e1; text-transform: uppercase; margin-bottom: 6px; letter-spacing: 0.2px;">📍 Trụ sở & Liên hệ</div>
+                                <div id="contentContact" style="font-size: 12px; line-height: 1.65; color: #94a3b8;"></div>
+                            </div>
+                        </div>
+
+                        <!-- BAN LÃNH ĐẠO -->
+                        <div class="glass-card">
+                            <div class="card-header-title">
+                                <span class="card-dot-indicator"></span> Ban lãnh đạo doanh nghiệp
+                            </div>
+                            <div id="leadershipListContainer" style="max-height: 380px; overflow-y: auto; padding-right: 4px;"></div>
+                        </div>
+                    </div>
+
+                    <!-- CỘT 2: TỔNG QUAN, LỊCH SỬ & NGÀNH NGHỀ (37%) -->
+                    <div>
+                        <!-- OVERVIEW HIGHLIGHT BOX -->
+                        <div class="glass-card">
+                            <div class="card-header-title">
+                                <span class="card-dot-indicator"></span> Giới thiệu & Tổng quan doanh nghiệp
+                            </div>
+                            <div class="story-highlight-box" id="textOverview" style="margin-bottom: 0;">-</div>
+                        </div>
+
+                        <!-- LĨNH VỰC KINH DOANH -->
+                        <div class="glass-card" id="blockBusinessLine">
+                            <div class="card-header-title">
+                                <span class="card-dot-indicator"></span> Lĩnh vực hoạt động & Triển vọng kinh doanh
+                            </div>
+                            <div class="biz-grid" id="bizGridContainer"></div>
+                        </div>
+
+                        <!-- LỊCH SỬ HÌNH THÀNH (VERTICAL TIMELINE) -->
+                        <div class="glass-card" id="blockHistory">
+                            <div class="card-header-title">
+                                <span class="card-dot-indicator"></span> Lịch sử hình thành & Cột mốc phát triển
+                            </div>
+                            <div class="timeline-vertical" id="timelineHistory"></div>
+                        </div>
+                    </div>
+
+                    <!-- CỘT 3: CƠ CẤU VỐN, ĐỒ THỊ & CÔNG TY CON (28%) -->
+                    <div>
+                        <!-- CƠ CẤU SỞ HỮU -->
+                        <div class="glass-card">
+                            <div class="card-header-title">
+                                <span class="card-dot-indicator"></span> Cơ cấu sở hữu vốn
+                            </div>
+                            <div style="height: 180px; position: relative; display: flex; align-items: center; justify-content: center;">
+                                <canvas id="chartOwnershipDonut"></canvas>
+                            </div>
+                        </div>
+
+                        <!-- THAY ĐỔI VỐN ĐIỀU LỆ -->
+                        <div class="glass-card">
+                            <div class="card-header-title">
+                                <span class="card-dot-indicator"></span> Quy mô vốn điều lệ qua các năm <span style="font-size: 11px; font-weight: normal; color: var(--text-muted);">(Tỷ VNĐ)</span>
+                            </div>
+                            <div style="height: 170px; position: relative;">
+                                <canvas id="chartCharterCapitalLine"></canvas>
+                            </div>
+                        </div>
+
+                        <!-- CÔNG TY CON & LIÊN KẾT -->
+                        <div class="glass-card">
+                            <div class="card-header-title" style="margin-bottom: 6px;">
+                                <span class="card-dot-indicator"></span> Công ty con trực tiếp
+                            </div>
+                            <div class="table-responsive-box" style="max-height: 220px;">
+                                <table>
+                                    <thead>
+                                        <tr>
+                                            <th style="width: 30px; text-align: center;">#</th>
+                                            <th>Tên Công Ty</th>
+                                            <th style="text-align: right; width: 85px;">Vốn ĐL (Tr)</th>
+                                            <th style="text-align: right; width: 80px;">KL Sở Hữu</th>
+                                            <th style="text-align: right; width: 75px;">% Sở Hữu</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="tableSubsBody"></tbody>
+                                </table>
+                            </div>
+
+                            <div class="card-header-title" style="margin-top: 14px; margin-bottom: 6px;">
+                                <span class="card-dot-indicator"></span> Công ty liên kết
+                            </div>
+                            <div id="affiliatesContainer"></div>
+                        </div>
+                    </div>
+
+                </div>
+            </div>
+
+            <!-- ================= TAB 2: CỔ ĐÔNG & GDNB ================= -->
+            <div id="pane-shareholders" class="tab-pane">
+                
+                <!-- BẢNG CỔ ĐÔNG LỚN -->
+                <div class="glass-card">
+                    <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; margin-bottom: 12px;">
+                        <div class="card-header-title" style="margin-bottom: 0;">
+                            <span class="card-dot-indicator"></span> Danh sách cổ đông lớn nắm giữ cổ phần
+                        </div>
+                        <div class="filter-ribbon">
+                            <button class="filter-pill active" id="btnShFilterAll" onclick="setShareholderFilter('all')">Tất cả</button>
+                            <button class="filter-pill" id="btnShFilterOrg" onclick="setShareholderFilter('org')">🏛️ Tổ chức</button>
+                            <button class="filter-pill" id="btnShFilterInd" onclick="setShareholderFilter('ind')">👤 Cá nhân</button>
+                        </div>
+                    </div>
+
+                    <div class="table-responsive-box">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th style="width: 35px; text-align: center;">#</th>
+                                    <th>CỔ ĐÔNG</th>
+                                    <th>CHỨC VỤ</th>
+                                    <th style="text-align: right;">SỐ LƯỢNG CP</th>
+                                    <th style="text-align: right; width: 150px;">TỶ LỆ SỞ HỮU</th>
+                                    <th style="text-align: right;">CẬP NHẬT</th>
+                                </tr>
+                            </thead>
+                            <tbody id="tableMajorShareholdersBody"></tbody>
+                        </table>
+                    </div>
+
+                    <div class="pagination-container">
+                        <span>Trang <strong id="shPageCurrent">1</strong> / <span id="shPageTotal">1</span></span>
+                        <button class="pg-btn" id="btnShPrev" onclick="changeShareholderPage(-1)">‹</button>
+                        <button class="pg-btn" id="btnShNext" onclick="changeShareholderPage(1)">›</button>
+                    </div>
+                </div>
+
+                <!-- 2 CỘT: DONUT & THỐNG KÊ GIAO DỊCH -->
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 12px;">
+                    <div class="glass-card" style="margin-bottom: 0;">
+                        <div class="card-header-title"><span class="card-dot-indicator"></span> Phân bổ cơ cấu sở hữu</div>
+                        <div style="height: 210px; position: relative; display: flex; align-items: center; justify-content: center;">
+                            <canvas id="chartOwnershipDonutTab2"></canvas>
+                        </div>
+                    </div>
+
+                    <div class="glass-card" style="margin-bottom: 0;">
+                        <div class="card-header-title"><span class="card-dot-indicator"></span> Thống kê Khớp Lệnh Lãnh đạo & CĐL theo năm</div>
+                        <div class="table-responsive-box" style="max-height: 210px;">
+                            <table>
+                                <thead>
+                                    <tr>
+                                        <th>Năm</th>
+                                        <th style="text-align: right; color: var(--accent-green);">Khớp MUA</th>
+                                        <th style="text-align: right; color: var(--accent-red);">Khớp BÁN</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="tableDealsSummaryBody"></tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- BẢNG GIAO DỊCH NỘI BỘ -->
+                <div class="glass-card">
+                    <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; margin-bottom: 12px;">
+                        <div class="card-header-title" style="margin-bottom: 0;">
+                            <span class="card-dot-indicator"></span> Lịch sử giao dịch cổ đông nội bộ & người liên quan
+                        </div>
+                        <div>
+                            <select id="dealTypeSelect" class="select-dark" onchange="changeDealType()">
+                                <option value="insider">Giao dịch cổ đông nội bộ</option>
+                                <option value="related">Giao dịch người liên quan</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="table-responsive-box">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th style="width: 35px; text-align: center;">#</th>
+                                    <th>HỌ VÀ TÊN</th>
+                                    <th>CHỨC VỤ</th>
+                                    <th style="text-align: right;">TRƯỚC GD</th>
+                                    <th style="text-align: right;">ĐĂNG KÝ</th>
+                                    <th style="text-align: center;">LOẠI GD</th>
+                                    <th style="text-align: right;">THỰC HIỆN</th>
+                                    <th style="text-align: center;">BẮT ĐẦU</th>
+                                    <th style="text-align: center;">KẾT THÚC</th>
+                                    <th style="text-align: right;">SAU GD</th>
+                                    <th style="text-align: right;">TỶ LỆ SAU GD</th>
+                                </tr>
+                            </thead>
+                            <tbody id="tableInsiderDealsBody"></tbody>
+                        </table>
+                    </div>
+
+                    <div class="pagination-container">
+                        <span>Trang <strong id="dealPageCurrent">1</strong> / <span id="dealPageTotal">1</span></span>
+                        <button class="pg-btn" id="btnDealPrev" onclick="changeDealPage(-1)">‹</button>
+                        <button class="pg-btn" id="btnDealNext" onclick="changeDealPage(1)">›</button>
+                    </div>
+                </div>
+
+            </div>
+
+            <!-- ================= TAB 3: TIN TỨC & SỰ KIỆN (SIDE-BY-SIDE PANORAMIC) ================= -->
+            <div id="pane-news-events" class="tab-pane">
+                <div class="news-events-split-grid">
+                    
+                    <!-- MAGAZINE NEWS FEED -->
+                    <div class="glass-card" style="margin-bottom: 0;">
+                        <div class="card-header-title">
+                            <span class="card-dot-indicator"></span> Dòng tin tức & Báo cáo doanh nghiệp
+                        </div>
+
+                        <div id="newsListContainer" style="min-height: 200px;"></div>
+
+                        <div class="pagination-container">
+                            <span>Trang <strong id="newsPageCurrent">1</strong> / <span id="newsPageTotal">1</span></span>
+                            <button class="pg-btn" id="btnNewsPrev" onclick="changeNewsPage(-1)">‹</button>
+                            <button class="pg-btn" id="btnNewsNext" onclick="changeNewsPage(1)">›</button>
+                        </div>
+                    </div>
+
+                    <!-- LỊCH SỰ KIỆN -->
+                    <div class="glass-card" style="margin-bottom: 0;">
+                        <div class="card-header-title">
+                            <span class="card-dot-indicator"></span> Lịch sự kiện & Cổ tức
+                        </div>
+
+                        <!-- 7 SUB-TABS -->
+                        <div class="filter-ribbon" style="margin-bottom: 12px;">
+                            <button class="filter-pill active" id="btnEventTab-cotuc" onclick="setEventSubTab('cotuc')">🎁 Cổ tức</button>
+                            <button class="filter-pill" id="btnEventTab-gdnb" onclick="setEventSubTab('gdnb')">💼 GD Nội bộ</button>
+                            <button class="filter-pill" id="btnEventTab-cdl" onclick="setEventSubTab('cdl')">🏛️ GD CĐL</button>
+                            <button class="filter-pill" id="btnEventTab-phathanh" onclick="setEventSubTab('phathanh')">📈 Phát hành</button>
+                            <button class="filter-pill" id="btnEventTab-dhcd" onclick="setEventSubTab('dhcd')">🗳️ ĐHCĐ</button>
+                            <button class="filter-pill" id="btnEventTab-cpquy" onclick="setEventSubTab('cpquy')">🏦 CP quỹ</button>
+                            <button class="filter-pill" id="btnEventTab-all" onclick="setEventSubTab('all')">📑 Tất cả</button>
+                        </div>
+
+                        <!-- CỔ TỨC (2 BẢNG) -->
+                        <div id="eventSubPane-cotuc">
+                            <div style="margin-bottom: 16px;">
+                                <div style="font-weight: 700; color: #cbd5e1; margin-bottom: 6px; font-size: 12px;">💵 Cổ tức bằng tiền mặt</div>
+                                <div class="table-responsive-box">
+                                    <table>
+                                        <thead>
+                                            <tr>
+                                                <th style="width: 35px; text-align: center;">#</th>
+                                                <th style="text-align: center; width: 90px;">GDKHQ</th>
+                                                <th style="text-align: center; width: 90px;">ĐKCC</th>
+                                                <th style="text-align: center; width: 90px;">THỰC HIỆN</th>
+                                                <th style="text-align: right; width: 75px;">TỶ LỆ</th>
+                                                <th>NỘI DUNG SỰ KIỆN</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody id="tableCashDivsBody"></tbody>
+                                    </table>
+                                </div>
+                                <div class="pagination-container">
+                                    <span>Trang <strong id="cashDivPageCurrent">1</strong> / <span id="cashDivPageTotal">1</span></span>
+                                    <button class="pg-btn" id="btnCashDivPrev" onclick="changeCashDivPage(-1)">‹</button>
+                                    <button class="pg-btn" id="btnCashDivNext" onclick="changeCashDivPage(1)">›</button>
+                                </div>
+                            </div>
+
+                            <div>
+                                <div style="font-weight: 700; color: #cbd5e1; margin-bottom: 6px; font-size: 12px;">📜 Cổ tức bằng cổ phiếu</div>
+                                <div class="table-responsive-box">
+                                    <table>
+                                        <thead>
+                                            <tr>
+                                                <th style="width: 35px; text-align: center;">#</th>
+                                                <th style="text-align: center; width: 90px;">GDKHQ</th>
+                                                <th style="text-align: center; width: 90px;">ĐKCC</th>
+                                                <th style="text-align: right; width: 75px;">TỶ LỆ</th>
+                                                <th style="text-align: right; width: 90px;">KHỐI LƯỢNG</th>
+                                                <th>NỘI DUNG SỰ KIỆN</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody id="tableStockDivsBody"></tbody>
+                                    </table>
+                                </div>
+                                <div class="pagination-container">
+                                    <span>Trang <strong id="stockDivPageCurrent">1</strong> / <span id="stockDivPageTotal">1</span></span>
+                                    <button class="pg-btn" id="btnStockDivPrev" onclick="changeStockDivPage(-1)">‹</button>
+                                    <button class="pg-btn" id="btnStockDivNext" onclick="changeStockDivPage(1)">›</button>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- GENERIC EVENT TABLE -->
+                        <div id="eventSubPane-generic" style="display: none;">
+                            <div class="table-responsive-box">
+                                <table>
+                                    <thead>
+                                        <tr>
+                                            <th style="width: 35px; text-align: center;">#</th>
+                                            <th style="text-align: center; width: 90px;">CÔNG BỐ</th>
+                                            <th style="text-align: center; width: 90px;">GDKHQ</th>
+                                            <th>NỘI DUNG SỰ KIỆN</th>
+                                            <th style="text-align: right; width: 90px;">TỶ LỆ / MỨC</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="tableGenericEventsBody"></tbody>
+                                </table>
+                            </div>
+                            <div class="pagination-container">
+                                <span>Trang <strong id="genericEventPageCurrent">1</strong> / <span id="genericEventPageTotal">1</span></span>
+                                <button class="pg-btn" id="btnGenericEventPrev" onclick="changeGenericEventPage(-1)">‹</button>
+                                <button class="pg-btn" id="btnGenericEventNext" onclick="changeGenericEventPage(1)">›</button>
+                            </div>
+                        </div>
+
+                    </div>
+                </div>
+            </div>
+
+            <!-- ================= TAB 4: LỊCH SỬ TĂNG VỐN ================= -->
+            <div id="pane-capitals" class="tab-pane">
+                <div class="glass-card">
+                    <div class="card-header-title">
+                        <span class="card-dot-indicator"></span> Toàn Bộ Lịch Sử Các Đợt Tăng Vốn Điều Lệ
+                    </div>
+                    <div class="table-responsive-box">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th style="width: 35px; text-align: center;">#</th>
+                                    <th>Thời Điểm / Mốc Năm</th>
+                                    <th style="text-align: right;">Vốn Điều Lệ (VNĐ)</th>
+                                    <th style="text-align: right;">Quy Mô Vốn</th>
+                                </tr>
+                            </thead>
+                            <tbody id="tableCharterCapitalsBody"></tbody>
+                        </table>
+                    </div>
+                    <div class="pagination-container">
+                        <span>Trang <strong id="capPageCurrent">1</strong> / <span id="capPageTotal">1</span></span>
+                        <button class="pg-btn" id="btnCapPrev" onclick="changeCapPage(-1)">‹</button>
+                        <button class="pg-btn" id="btnCapNext" onclick="changeCapPage(1)">›</button>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+    <!-- MODAL POPUP ARTICLE PREVIEW -->
+    <div id="newsArticleModal" class="modal-overlay" onclick="closeNewsModal(event)">
+        <div class="modal-window" onclick="event.stopPropagation()">
+            <div class="modal-top">
+                <div style="font-size: 14px; font-weight: 700; color: #ffffff; line-height: 1.4;" id="modalArticleTitle">-</div>
+                <button class="modal-close" onclick="closeNewsModal()">&times;</button>
+            </div>
+            <div class="modal-content-area">
+                <div style="font-size: 11.5px; color: var(--text-muted); margin-bottom: 12px;" id="modalArticleMeta">-</div>
+                
+                <div class="modal-ai-box">
+                    <div style="font-size: 11px; font-weight: 700; color: #a5b4fc; margin-bottom: 4px; display: flex; align-items: center; gap: 4px;">
+                        <span>✨</span> Nội dung tóm tắt
+                    </div>
+                    <div id="modalArticleSummary" style="color: #ffffff; line-height: 1.6;">-</div>
+                </div>
+
+                <div id="modalArticleContent" style="white-space: pre-line; word-break: break-word;"></div>
+            </div>
+            <div style="padding: 12px 18px; border-top: 1px solid var(--border-subtle); display: flex; justify-content: flex-end; background: rgba(0,0,0,0.2);">
+                <a id="modalSourceDirectLink" href="#" target="_blank" rel="noopener noreferrer" class="btn-action-refresh" style="background: var(--accent-blue); color: #ffffff; border-color: var(--accent-blue); font-weight: 700; padding: 7px 16px;">
+                    <span>📰</span> Nguồn trang báo đăng tải
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <script>
+
+        function roundNum(val, decimals = 1) {
+            if (val == null || isNaN(val)) return 0;
+            const factor = Math.pow(10, decimals);
+            return Math.round(Number(val) * factor) / factor;
+        }
+
+        const urlParams = new URLSearchParams(window.location.search);
+        let currentSymbol = (urlParams.get('symbol') || 'ACB').trim().toUpperCase();
+        let globalData = null;
+        let ownershipChartInstance = null;
+        let ownershipChartTab2Instance = null;
+        let charterChartInstance = null;
+
+        // Shareholder Pagination & Filter
+        let shFilter = 'all';
+        let shCurrentPage = 1;
+        const SH_PAGE_SIZE = 10;
+
+        // Deal Pagination & Selector
+        let dealType = 'insider';
+        let dealCurrentPage = 1;
+        const DEAL_PAGE_SIZE = 25;
+
+        // News Pagination
+        let newsCurrentPage = 1;
+        const NEWS_PAGE_SIZE = 10;
+
+        // Events SubTab
+        let currentEventSubTab = 'cotuc';
+        let cashDivCurrentPage = 1;
+        let stockDivCurrentPage = 1;
+        let genericEventCurrentPage = 1;
+        const EVENT_PAGE_SIZE = 10;
+
+        // Capital History Pagination
+        let capCurrentPage = 1;
+        const CAP_PAGE_SIZE = 15;
+
+        function switchNavTab(tabName) {
+            document.querySelectorAll('.nav-tab-pill').forEach(btn => btn.classList.remove('active'));
+            document.querySelectorAll('.tab-pane').forEach(pane => pane.classList.remove('active'));
+            
+            const btn = Array.from(document.querySelectorAll('.nav-tab-pill')).find(b => b.getAttribute('onclick')?.includes(tabName));
+            const pane = document.getElementById('pane-' + tabName);
+            if (btn) btn.classList.add('active');
+            if (pane) pane.classList.add('active');
+
+            if (tabName === 'shareholders' && globalData) {
+                renderDonutChartTab2(globalData.ownerships || {});
+            }
+        }
+
+        function formatNum(val, decimals = 0) {
+            if (val == null || isNaN(val)) return '-';
+            return Number(val).toLocaleString('vi-VN', { maximumFractionDigits: decimals });
+        }
+
+        function formatDate(dateStr) {
+            if (!dateStr || dateStr === '-') return '-';
+            try {
+                const d = new Date(dateStr);
+                if (isNaN(d.getTime())) return dateStr;
+                const day = String(d.getDate()).padStart(2, '0');
+                const month = String(d.getMonth() + 1).padStart(2, '0');
+                const year = d.getFullYear();
+                return `${day}/${month}/${year}`;
+            } catch(e) {
+                return dateStr;
+            }
+        }
+
+        function formatDateTime(dateStr) {
+            if (!dateStr || dateStr === '-') return '-';
+            try {
+                const d = new Date(dateStr);
+                if (isNaN(d.getTime())) return dateStr;
+                const day = String(d.getDate()).padStart(2, '0');
+                const month = String(d.getMonth() + 1).padStart(2, '0');
+                const year = d.getFullYear();
+                const hours = String(d.getHours()).padStart(2, '0');
+                const minutes = String(d.getMinutes()).padStart(2, '0');
+                return `${day}/${month}/${year} ${hours}:${minutes}`;
+            } catch(e) {
+                return dateStr;
+            }
+        }
+
+        function formatSharesTriệu(shares) {
+            if (!shares) return '-';
+            const trieu = shares / 1e6;
+            if (trieu >= 1) {
+                return formatNum(trieu, 2) + ' <span style="font-size: 10px; color: var(--text-muted);">triệu</span>';
+            }
+            return formatNum(shares, 0);
+        }
+
+        function boDauTiengViet(str) {
+            if (!str) return '';
+            str = str.toLowerCase();
+            str = str.replace(/à|á|ạ|ả|ã|â|ầ|ấ|ậ|ẩ|ẫ|ă|ằ|ắ|ặ|ẳ|ẵ/g, "a");
+            str = str.replace(/è|é|ẹ|ẻ|ẽ|ê|ề|ế|ệ|ể|ễ/g, "e");
+            str = str.replace(/ì|í|ị|ỉ|ĩ/g, "i");
+            str = str.replace(/ò|ó|ỏ|õ|ô|ồ|ố|ộ|ổ|ỗ|ơ|ờ|ớ|ợ|ở|ỡ/g, "o");
+            str = str.replace(/ù|ú|ụ|ủ|ũ|ư|ừ|ứ|ự|ử|ữ/g, "u");
+            str = str.replace(/ỳ|ý|ỵ|ỷ|ỹ/g, "y");
+            str = str.replace(/đ/g, "d");
+            str = str.replace(/[^a-z0-9]/g, "-");
+            str = str.replace(/-+/g, "-");
+            return str.replace(/^-|-$/g, "");
+        }
+
+        function getAvatarUrl(avatarStr) {
+            if (!avatarStr || avatarStr.trim() === '') return '';
+            if (avatarStr.startsWith('http') || avatarStr.startsWith('data:image')) return avatarStr;
+            return 'https://cdn.fialda.com/Images/upload/' + avatarStr;
+        }
+
+        function getNewsImageUrl(imgStr) {
+            if (!imgStr || imgStr.trim() === '') return '';
+            if (imgStr.startsWith('http') || imgStr.startsWith('data:image')) return imgStr;
+            return 'https://cdn.fialda.com/Images/News/' + imgStr;
+        }
+
+        function parseTimelineHistory(rawHistory, containerEl) {
+            if (!rawHistory || !rawHistory.trim()) {
+                containerEl.innerHTML = '';
+                return false;
+            }
+            const doc = new DOMParser().parseFromString(rawHistory, 'text/html');
+            let text = doc.body.textContent || rawHistory;
+            const lines = text.split(/\r?\n/).map(s => s.trim()).filter(s => s.length > 0);
+            
+            if (lines.length === 0) return false;
+
+            containerEl.innerHTML = lines.map(line => {
+                const clean = line.replace(/^[-•*\s]+/, '');
+                return `
+                    <div class="timeline-node">
+                        <div class="timeline-dot"></div>
+                        <div class="timeline-content">${clean}</div>
+                    </div>
+                `;
+            }).join('');
+            return true;
+        }
+
+        function getItemCategoryIcon(str) {
+            const s = str.toLowerCase();
+            if (s.includes('xây dựng') || s.includes('thi công') || s.includes('lắp đặt') || s.includes('công trình')) return '🏗️';
+            if (s.includes('điện') || s.includes('năng lượng') || s.includes('thủy điện') || s.includes('mặt trời') || s.includes('gió')) return '⚡';
+            if (s.includes('bất động sản') || s.includes('nhà xưởng') || s.includes('khu công nghiệp') || s.includes('đô thị') || s.includes('nhà ở')) return '🏢';
+            if (s.includes('vật liệu') || s.includes('xi măng') || s.includes('kim loại') || s.includes('gỗ') || s.includes('thép')) return '🧱';
+            if (s.includes('tư vấn') || s.includes('quản lý') || s.includes('thiết kế') || s.includes('giám sát') || s.includes('thẩm định')) return '📊';
+            if (s.includes('cảng') || s.includes('vận tải') || s.includes('logistics') || s.includes('tàu') || s.includes('kho bãi')) return '🚢';
+            if (s.includes('công nghệ') || s.includes('phần mềm') || s.includes('chuyển đổi số') || s.includes('viễn thông') || s.includes('it')) return '💻';
+            if (s.includes('nước') || s.includes('môi trường') || s.includes('chất thải') || s.includes('xử lý')) return '💧';
+            if (s.includes('chứng khoán') || s.includes('tài chính') || s.includes('ngân hàng') || s.includes('đầu tư') || s.includes('bảo hiểm')) return '📈';
+            if (s.includes('nông nghiệp') || s.includes('thực phẩm') || s.includes('chế biến') || s.includes('thủy sản') || s.includes('chăn nuôi')) return '🌾';
+            if (s.includes('khách sạn') || s.includes('du lịch') || s.includes('nghỉ dưỡng') || s.includes('ẩm thực') || s.includes('nhà hàng')) return '🏨';
+            if (s.includes('y tế') || s.includes('dược') || s.includes('bệnh viện') || s.includes('chăm sóc sức khỏe')) return '💊';
+            if (s.includes('giáo dục') || s.includes('đào tạo') || s.includes('nghiên cứu')) return '🎓';
+            return '🔹';
+        }
+
+        let isBizExpanded = false;
+        function toggleBizExpansion() {
+            isBizExpanded = !isBizExpanded;
+            const hiddenEl = document.getElementById('bizHiddenList');
+            const btnEl = document.getElementById('btnToggleBiz');
+            if (hiddenEl && btnEl) {
+                if (isBizExpanded) {
+                    hiddenEl.style.display = 'grid';
+                    btnEl.innerHTML = '<span>🔼</span> Thu gọn danh sách';
+                } else {
+                    hiddenEl.style.display = 'none';
+                    const count = hiddenEl.children.length;
+                    btnEl.innerHTML = `<span>🔽</span> Xem thêm đầy đủ (+${count} ngành nghề khác)`;
+                }
+            }
+        }
+
+        function parseBusinessLines(rawBiz, containerEl) {
+            if (!rawBiz || !rawBiz.trim()) {
+                containerEl.innerHTML = '';
+                return false;
+            }
+            const doc = new DOMParser().parseFromString(rawBiz, 'text/html');
+            let text = doc.body.textContent || rawBiz;
+            
+            const parts = text.split(/[;\r\n•]+/).map(s => s.trim().replace(/^[-•*\s]+/, '')).filter(s => s.length > 3);
+            if (parts.length === 0) return false;
+
+            const seen = new Set();
+            const uniqueItems = [];
+            parts.forEach(it => {
+                const key = it.toLowerCase();
+                if (!seen.has(key)) {
+                    seen.add(key);
+                    uniqueItems.push(it);
+                }
+            });
+
+            if (uniqueItems.length === 0) return false;
+
+            const isLongList = uniqueItems.length > 8;
+            const initialItems = isLongList ? uniqueItems.slice(0, 8) : uniqueItems;
+            const hiddenItems = isLongList ? uniqueItems.slice(8) : [];
+            isBizExpanded = false;
+
+            let html = `
+                <div class="biz-chips-container" id="bizVisibleList">
+                    ${initialItems.map(it => `
+                        <div class="biz-chip-card">
+                            <span class="biz-chip-icon">${getItemCategoryIcon(it)}</span>
+                            <span class="biz-chip-text">${it}</span>
+                        </div>
+                    `).join('')}
+                </div>
+            `;
+
+            if (isLongList) {
+                html += `
+                    <div class="biz-chips-container" id="bizHiddenList" style="display: none; margin-top: 8px;">
+                        ${hiddenItems.map(it => `
+                            <div class="biz-chip-card">
+                                <span class="biz-chip-icon">${getItemCategoryIcon(it)}</span>
+                                <span class="biz-chip-text">${it}</span>
+                            </div>
+                        `).join('')}
+                    </div>
+                    <div style="text-align: center; margin-top: 10px;">
+                        <button class="btn-expand-biz" id="btnToggleBiz" onclick="toggleBizExpansion()">
+                            <span>🔽</span> Xem thêm đầy đủ (+${hiddenItems.length} ngành nghề kinh doanh khác)
+                        </button>
+                    </div>
+                `;
+            }
+
+            containerEl.innerHTML = html;
+            return true;
+        }
+
+        async function loadCompanyData(forceRefresh = false) {
+            document.getElementById('loadingBox').style.display = 'block';
+            document.getElementById('mainContent').style.display = 'none';
+
+            try {
+                // 1. Giai đoạn 1: Tải Core Profile để hiển thị tức thì (<0.4s)
+                const coreUrl = `/api/fialda/company-profile?symbol=${currentSymbol}&stage=core` + (forceRefresh ? '&force_refresh=true' : '');
+                const res = await fetch(coreUrl);
+                if (!res.ok) throw new Error('API returned status ' + res.status);
+                const result = await res.json();
+                
+                globalData = result;
+                renderCompanyProfile(result);
+
+                // 2. Giai đoạn 2: Tải ngầm toàn bộ dữ liệu Cổ đông, Sự kiện, Tin tức nếu chỉ mới có Core
+                if (result.is_partial) {
+                    fetchExtendedDataInBackground(currentSymbol, forceRefresh);
+                }
+            } catch (err) {
+                console.error("Error loading data:", err);
+                document.getElementById('loadingBox').innerHTML = `
+                    <div style="color: var(--accent-red); font-size: 15px; font-weight: 700; margin-bottom: 8px;">❌ Không thể tải dữ liệu hồ sơ doanh nghiệp</div>
+                    <div style="font-size: 12px; color: var(--text-muted);">${err.message}</div>
+                    <button class="btn-action-refresh" onclick="loadCompanyData(true)" style="margin: 14px auto 0 auto;">🔄 Thử lại</button>
+                `;
+            }
+        }
+
+        async function fetchExtendedDataInBackground(symbol, forceRefresh = false) {
+            try {
+                const fullUrl = `/api/fialda/company-profile?symbol=${symbol}&stage=full` + (forceRefresh ? '&force_refresh=true' : '');
+                const res = await fetch(fullUrl);
+                if (res.ok) {
+                    const fullResult = await res.json();
+                    if (fullResult && fullResult.status === 'success' && currentSymbol === symbol) {
+                        globalData = fullResult;
+                        
+                        // Cập nhật biểu đồ cơ cấu sở hữu (Donut)
+                        if (fullResult.ownerships && Object.keys(fullResult.ownerships).length > 0) {
+                            renderDonutChart(fullResult.ownerships);
+                        }
+                        
+                        // Cập nhật các bảng Cổ đông & Giao dịch nội bộ (Tab 2)
+                        renderShareholdersTable();
+                        renderDealsSummaryTable(fullResult.majorShareHolderDeals || []);
+                        renderInsiderDealsTable();
+                        
+                        // Cập nhật Tin tức & Sự kiện (Tab 3)
+                        renderNewsTable();
+                        renderEventsSubPane();
+
+                        // Cập nhật các badge số lượng trên thanh tab
+                        const majors = fullResult.majorShareholders || [];
+                        const briefEvs = fullResult.briefEvents || [];
+                        const news = fullResult.news || [];
+                        const bSh = document.getElementById('badgeShareholders');
+                        if (bSh) bSh.innerText = majors.length;
+                        const bNe = document.getElementById('badgeNewsEvents');
+                        if (bNe) bNe.innerText = news.length + briefEvs.length;
+                    }
+                }
+            } catch (e) {
+                console.warn('Background extended profile fetch failed:', e);
+            }
+        }
+
+        function renderCompanyProfile(data) {
+            const sym = data.symbol || currentSymbol;
+            const p = data.profile || {};
+            const capitals = data.charterCapitals || [];
+            const leads = data.leaderships || [];
+            const majors = data.majorShareholders || [];
+            const deals = data.majorShareHolderDeals || [];
+            const allSubs = data.subCompanies || [];
+            const briefEvs = data.briefEvents || [];
+            const news = data.news || [];
+
+            // ICB MAP
+            const ICB_SECTORS_MAP = {"0001": "Dầu khí", "0500": "Dầu khí", "0530": "Sản xuất Dầu khí", "0533": "Sản xuất và Khai thác dầu khí", "0537": "Tổ hợp Dầu khí", "0570": "Thiết bị, Dịch vụ và Phân phối Dầu khí", "0573": "Thiết bị và Dịch vụ Dầu khí", "0577": "Ống dẫn Dầu", "0580": "Năng lượng thay thế", "0583": "Thiết bị năng lượng tái chế", "0587": "Nhiên liệu thay thế", "1000": "Nguyên vật liệu", "1300": "Hóa chất", "1350": "Hóa chất", "1353": "Nhựa, cao su & sợi", "1357": "Sản phẩm hóa dầu, Nông dược & Hóa chất khác", "1700": "Tài nguyên Cơ bản", "1730": "Lâm nghiệp và Giấy", "1733": "Lâm sản và Chế biến gỗ", "1737": "Sản xuất giấy", "1750": "Kim loại", "1753": "Nhôm", "1755": "Kim Loại màu", "1757": "Thép và sản phẩm thép", "1770": "Khai khoáng", "1771": "Khai thác Than", "1773": "Đá quý và Kim cương", "1775": "Khai khoáng", "1777": "Khai thác vàng", "1779": "Bạch kim & Kim loại quý khác", "2000": "Công nghiệp", "2300": "Xây dựng và Vật liệu", "2350": "Xây dựng và Vật liệu", "2353": "Vật liệu xây dựng & Nội thất", "2357": "Xây dựng", "2700": "Hàng & Dịch vụ Công nghiệp", "2710": "Hàng không & Quốc phòng", "2713": "Hàng không", "2717": "Quốc phòng", "2720": "Hàng công nghiệp", "2723": "Containers & Đóng gói", "2727": "Công nghiệp phức hợp", "2730": "Điện tử & Thiết bị điện", "2733": "Hàng điện & điện tử", "2737": "Thiết bị điện", "2750": "Công nghiệp nặng", "2753": "Xe tải & Đóng tàu", "2757": "Máy công nghiệp", "2770": "Vận tải", "2771": "Chuyển phát nhanh", "2773": "Vận tải Thủy", "2775": "Đường sắt", "2777": "Kho bãi, hậu cần và bảo dưỡng", "2779": "Dịch vụ vận tải", "2790": "Tư vấn & Hỗ trợ Kinh doanh", "2791": "Tư vấn & Hỗ trợ KD", "2793": "Đào tạo & Việc làm", "2795": "Quản lý Tài chính", "2797": "Nhà cung cấp thiết bị", "2799": "Chất thải & Môi trường", "3000": "Hàng Tiêu dùng", "3300": "Ô tô và phụ tùng", "3350": "Ô tô và phụ tùng", "3353": "Sản xuất ô tô", "3355": "Phụ tùng ô tô", "3357": "Lốp xe", "3500": "Thực phẩm và đồ uống", "3530": "Bia và đồ uống", "3533": "Sản xuất bia", "3535": "Vang & Rượu mạnh", "3537": "Đồ uống & giải khát", "3570": "Sản xuất thực phẩm", "3573": "Nuôi trồng nông & hải sản", "3577": "Thực phẩm", "3700": "Hàng cá nhân & Gia dụng", "3720": "Hàng gia dụng", "3722": "Đồ gia dụng lâu bền", "3724": "Đồ gia dụng một lần", "3726": "Thiết bị gia dụng", "3728": "Xây nhà", "3740": "Hàng hóa giải trí", "3743": "Điện tử tiêu dùng", "3745": "Sản phẩm nghệ thuật", "3747": "Đồ chơi", "3760": "Hàng cá nhân", "3763": "Hàng May mặc", "3765": "Giầy dép", "3767": "Hàng cá nhân", "3780": "Thuốc lá", "3785": "Thuốc lá", "4000": "Dược phẩm và Y tế", "4500": "Y tế", "4530": "Thiết bị và Dịch vụ Y tế", "4533": "Chăm sóc y tế", "4535": "Thiết bị y tế", "4537": "Dụng cụ y tế", "4570": "Dược phẩm", "4573": "Công nghệ sinh học", "4577": "Dược phẩm", "5000": "Dịch vụ Tiêu dùng", "5300": "Bán lẻ", "5330": "Phân phối thực phẩm & dược phẩm", "5333": "Phân phối dược phẩm", "5337": "Phân phối thực phẩm", "5370": "Bán lẻ", "5371": "Bán lẻ hàng may mặc", "5373": "Bán lẻ phức hợp", "5375": "Phân phối nội thất", "5377": "Dịch vụ tiêu dùng chuyên ngành", "5379": "Phân phối hàng chuyên dụng", "5500": "Truyền thông", "5550": "Truyền thông", "5553": "Giải trí & Truyền thông", "5555": "Dịch vụ truyền thông", "5557": "Sách, ấn bản & sản phẩm văn hóa", "5700": "Du lịch và Giải trí", "5750": "Du lịch & Giải trí", "5751": "Hàng không", "5752": "Gambling", "5753": "Khách sạn", "5755": "Dịch vụ giải trí", "5757": "Nhà hàng và quán bar", "5759": "Vận tải hành khách & Du lịch", "6000": "Viễn thông", "6500": "Viễn thông", "6530": "Viễn thông cố định", "6535": "Viễn thông cố định", "6570": "Viễn thông di động", "6575": "Viễn thông di động", "7000": "Tiện ích Cộng đồng", "7500": "Điện, nước & xăng dầu khí đốt", "7530": "Sản xuất & Phân phối Điện", "7535": "Sản xuất & Phân phối Điện", "7570": "Nước & Khí đốt", "7573": "Phân phối xăng dầu & khí đốt", "7575": "Tiện ích khác", "7577": "Nước", "8000": "Tài chính", "8300": "Ngân hàng", "8350": "Ngân hàng", "8355": "Ngân hàng", "8500": "Bảo hiểm", "8530": "Bảo hiểm phi nhân thọ", "8532": "Bảo hiểm phức hợp", "8534": "Môi giới bảo hiểm", "8536": "Bảo hiểm phi nhân thọ", "8538": "Tái bảo hiểm", "8570": "Bảo hiểm nhân thọ", "8575": "Bảo hiểm nhân thọ", "8580": "Công ty bảo hiểm", "8581": "Công ty bảo hiểm", "8600": "Bất động sản", "8630": "Bất động sản", "8633": "Bất động sản", "8637": "Tư Vấn, Định giá, Môi giới Bất động sản", "8670": "Quỹ ủy thác BĐS", "8677": "Quỹ ủy thác BĐS", "8700": "Dịch vụ tài chính", "8770": "Dịch vụ tài chính", "8771": "Quản lý tài sản", "8773": "Tài chính cá nhân", "8775": "Tài chính đặc biệt", "8777": "Môi giới chứng khoán", "8779": "Cầm cố", "8780": "Công ty Chứng khoán", "8781": "Công ty Chứng khoán", "8900": "Đầu tư chứng khoán/phi chứng khoán", "8980": "Quỹ đóng", "8985": "Quỹ đóng", "8990": "Quỹ mở", "8995": "Quỹ mở", "9000": "Công nghệ Thông tin", "9500": "Công nghệ Thông tin", "9530": "Phần mềm & Dịch vụ Máy tính", "9533": "Dịch vụ Máy tính", "9535": "Internet", "9537": "Phần mềm", "9570": "Thiết bị và Phần cứng", "9572": "Phần cứng", "9574": "Thiết bị văn phòng", "9576": "Bán dẫn", "9578": "Thiết bị viễn thông"};
+
+            function getSectorName(icbCode) {
+                if (!icbCode) return 'Chưa phân ngành';
+                const codeStr = String(icbCode).trim();
+                if (ICB_SECTORS_MAP[codeStr]) return ICB_SECTORS_MAP[codeStr];
+                if (codeStr.length === 4) {
+                    const parentCode = codeStr.substring(0, 2) + '00';
+                    if (ICB_SECTORS_MAP[parentCode]) return ICB_SECTORS_MAP[parentCode];
+                }
+                return 'Ngành ' + codeStr;
+            }
+
+            function handleLogoError(imgEl) {
+                const sym = currentSymbol;
+                if (imgEl.src.includes('simplizevn/logo')) {
+                    imgEl.src = `https://cdn.simplize.vn/simplizevip/public/images/logo/${sym}.png`;
+                } else if (imgEl.src.includes('simplizevip')) {
+                    imgEl.src = `https://apipubaws.tcbs.com.vn/tcanalysis/v1/ticker/${sym}/overview`;
+                } else {
+                    imgEl.style.display = 'none';
+                    const fb = document.getElementById('headerLogoFallback');
+                    if (fb) {
+                        fb.innerText = sym;
+                        fb.style.display = 'flex';
+                    }
+                }
+            }
+
+            // 1. HERO HEADER
+            document.getElementById('headerSymbol').innerText = sym;
+            const fullCompanyName = data.companyName || (data.profile && data.profile.companyName) || data.fullName || sym;
+            document.getElementById('headerCompanyName').innerText = fullCompanyName;
+            
+            const exName = data.exchange || p.initialExchange || 'HSX';
+            document.getElementById('headerExchange').innerText = (exName === 'HOSE' || exName === 'HSX') ? '🏛️ HOSE' : '🏛️ ' + exName;
+            
+            const rawIcb = data.icbCode || p.icbCode || '';
+            const secName = data.sectorName || (data.profile && data.profile.sectorName) || getSectorName(rawIcb);
+            document.getElementById('headerSector').innerText = '🏷️ ' + secName;
+            document.getElementById('headerIcbCode').innerText = 'Mã ngành ICB: ' + (rawIcb || '-');
+
+            // Logo loading
+            const logoImg = document.getElementById('headerLogoImg');
+            const logoFallback = document.getElementById('headerLogoFallback');
+            if (logoImg && logoFallback) {
+                logoImg.style.display = 'block';
+                logoFallback.style.display = 'none';
+                logoImg.src = `https://cdn.simplize.vn/simplizevn/logo/${sym}.jpeg`;
+            }
+
+            // 2. METRICS RIBBON (FIX INNERHTML FOR PROPER SPAN RENDERING)
+            let capStr = '-';
+            if (p.charterCapital) {
+                const nghinTy = p.charterCapital / 1e12;
+                if (nghinTy >= 1) {
+                    capStr = nghinTy.toFixed(2) + ' nghìn tỷ';
+                } else {
+                    capStr = formatNum(p.charterCapital / 1e9, 2) + ' tỷ';
+                }
+            }
+            document.getElementById('ribbonCharterCap').innerText = capStr;
+            const fYear = p.foundingDate ? (p.foundingDate.length >= 4 ? p.foundingDate.substring(0, 4) : p.foundingDate) : null;
+            document.getElementById('ribbonFoundingYear').innerText = fYear ? `${fYear} (${new Date().getFullYear() - parseInt(fYear)} năm)` : '-';
+            document.getElementById('ribbonEmployees').innerText = p.numberOfEmployees ? formatNum(p.numberOfEmployees, 0) + ' người' : '-';
+            document.getElementById('ribbonBranches').innerText = `${p.numberOfBranches || 0} CN / ${p.numberOfSubCompanies || allSubs.length || 0} Con`;
+            document.getElementById('ribbonShares').innerHTML = p.sharesOutstanding ? formatSharesTriệu(p.sharesOutstanding) : '-';
+
+            function safeText(id, val) {
+                const el = document.getElementById(id);
+                if (el) el.innerText = (val == null ? '-' : val);
+            }
+            function safeHtml(id, val) {
+                const el = document.getElementById(id);
+                if (el) el.innerHTML = (val == null ? '-' : val);
+            }
+
+            // 3. THÔNG TIN CƠ BẢN & NIÊM YẾT (DUAL GRID 100% ĐẦY ĐỦ)
+            safeText('valSymbol', sym);
+            safeText('valIcbCode', p.icbCode || '-');
+            safeText('valFoundingYear', p.foundingDate ? (p.foundingDate.length >= 4 ? p.foundingDate.substring(0, 4) : p.foundingDate) : '-');
+            safeText('valCharterCap', capStr);
+            safeText('valEmployees', p.numberOfEmployees ? formatNum(p.numberOfEmployees, 0) : '-');
+            safeText('valBranches', p.numberOfBranches ? formatNum(p.numberOfBranches, 0) : '-');
+            safeText('valSubsCount', p.numberOfSubCompanies || allSubs.length || '0');
+            safeText('valLegalRep', p.legalRepresentative || '-');
+
+            safeText('valListedDate', formatDate(p.listedDate));
+            safeText('valExchange', data.exchange || p.initialExchange || 'HOSE');
+            safeText('valInitialPrice', p.initialPrice ? formatNum(p.initialPrice, 0) : '-');
+            safeText('valFirstDayPrice', p.firstDayPrice ? formatNum(p.firstDayPrice, 0) : '-');
+            safeText('valLastIssuedDate', formatDate(p.lastIssuedDate));
+            safeText('valInitialVol', p.initialVolume ? formatNum(p.initialVolume, 0) : '-');
+            safeText('valListingVol', p.listingVolume ? formatNum(p.listingVolume, 0) : '-');
+            safeText('valSharesOutstanding', p.sharesOutstanding ? formatNum(p.sharesOutstanding, 0) : '-');
+
+            // 4. BADGES
+            const bSh = document.getElementById('badgeShareholders');
+            if (bSh) bSh.innerText = data.is_partial ? '...' : majors.length;
+            const bCap = document.getElementById('badgeCapitals');
+            if (bCap) bCap.innerText = capitals.length;
+            const bNe = document.getElementById('badgeNewsEvents');
+            if (bNe) bNe.innerText = data.is_partial ? '...' : (news.length + briefEvs.length);
+
+            // 5. OVERVIEW STORY
+            const doc = new DOMParser().parseFromString(p.aboutCompany || '-', 'text/html');
+            document.getElementById('textOverview').innerHTML = doc.body.innerHTML || p.aboutCompany || '-';
+
+            // 6. TIMELINE HISTORY
+            const hasHistory = parseTimelineHistory(p.history, document.getElementById('timelineHistory'));
+            document.getElementById('blockHistory').style.display = hasHistory ? 'block' : 'none';
+
+            // 7. BUSINESS LINES GRID
+            const bizRaw = p.businessProspect || p.businessLine;
+            const hasBiz = parseBusinessLines(bizRaw, document.getElementById('bizGridContainer'));
+            document.getElementById('blockBusinessLine').style.display = hasBiz ? 'block' : 'none';
+
+            // 8. CONTACT
+            const contactHtml = `
+                ${p.address ? `<div>🏢 <strong>Địa chỉ:</strong> ${p.address}</div>` : ''}
+                ${p.tel ? `<div>📞 <strong>Điện thoại:</strong> ${p.tel} ${p.fax ? `| <strong>Fax:</strong> ${p.fax}` : ''}</div>` : ''}
+                ${p.website ? `<div>🌐 <strong>Website:</strong> <a href="${p.website.startsWith('http') ? p.website : 'https://' + p.website}" target="_blank" rel="noopener noreferrer" style="color:var(--accent-cyan); text-decoration:none;">${p.website}</a></div>` : ''}
+                ${p.email ? `<div>✉️ <strong>Email:</strong> ${p.email}</div>` : ''}
+                ${p.legalRepresentative ? `<div>⚖️ <strong>Đại diện pháp luật:</strong> ${p.legalRepresentative}</div>` : ''}
+            `;
+            document.getElementById('contentContact').innerHTML = contactHtml;
+
+            // 9. CÔNG TY CON & LIÊN KẾT
+            const subsList = [];
+            const affsList = [];
+            allSubs.forEach(s => {
+                const ratio = s.ratio != null ? s.ratio : (s.ownership != null ? s.ownership : 0);
+                const isSub = s.type === 0 || ratio >= 0.5 || ratio >= 50;
+                if (isSub) subsList.push(s);
+                else affsList.push(s);
+            });
+
+            const subsTableBody = document.getElementById('tableSubsBody');
+            if (subsList.length > 0) {
+                subsTableBody.innerHTML = subsList.map((s, idx) => {
+                    const capTri = (s.charterCapital || s.capital) ? ((s.charterCapital || s.capital) / 1e6) : null;
+                    const ratioVal = s.ratio != null ? (s.ratio <= 1 ? s.ratio * 100 : s.ratio) : (s.ownership != null ? (s.ownership <= 1 ? s.ownership * 100 : s.ownership) : 100);
+                    return `
+                        <tr>
+                            <td style="text-align: center; color: var(--text-muted); font-weight: 700;">${idx + 1}</td>
+                            <td style="font-weight: 600; color: #ffffff;">${s.name} ${s.exchange ? `(${s.exchange})` : ''}</td>
+                            <td style="text-align: right; font-family: var(--font-mono);">${capTri ? formatNum(capTri, 0) : '-'}</td>
+                            <td style="text-align: right; font-family: var(--font-mono);">${s.shares ? formatNum(s.shares, 0) : '-'}</td>
+                            <td style="text-align: right; font-family: var(--font-mono); font-weight: 800; color: var(--accent-green);">${formatNum(ratioVal, 0)}%</td>
+                        </tr>
+                    `;
+                }).join('');
+            } else {
+                subsTableBody.innerHTML = '<tr><td colspan="5" style="text-align:center; padding:14px; color:var(--text-muted);">Không có công ty con trực tiếp.</td></tr>';
+            }
+
+            const affCont = document.getElementById('affiliatesContainer');
+            if (affsList.length > 0) {
+                affCont.innerHTML = `
+                    <div class="table-responsive-box">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th style="width: 35px; text-align: center;">#</th>
+                                    <th>Tên Công Ty</th>
+                                    <th style="text-align: right;">Vốn Điều Lệ (Triệu)</th>
+                                    <th style="text-align: right;">KL Sở Hữu</th>
+                                    <th style="text-align: right;">% Sở Hữu</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                ${affsList.map((s, idx) => {
+                                    const capTri = (s.charterCapital || s.capital) ? ((s.charterCapital || s.capital) / 1e6) : null;
+                                    const ratioVal = s.ratio != null ? (s.ratio <= 1 ? s.ratio * 100 : s.ratio) : (s.ownership != null ? (s.ownership <= 1 ? s.ownership * 100 : s.ownership) : 0);
+                                    return `
+                                        <tr>
+                                            <td style="text-align: center; color: var(--text-muted); font-weight: 700;">${idx + 1}</td>
+                                            <td style="font-weight: 600; color: #ffffff;">${s.name}</td>
+                                            <td style="text-align: right; font-family: var(--font-mono);">${capTri ? formatNum(capTri, 0) : '-'}</td>
+                                            <td style="text-align: right; font-family: var(--font-mono);">${s.shares ? formatNum(s.shares, 0) : '-'}</td>
+                                            <td style="text-align: right; font-family: var(--font-mono); font-weight: 800; color: var(--accent-amber);">${formatNum(ratioVal, 0)}%</td>
+                                        </tr>
+                                    `;
+                                }).join('')}
+                            </tbody>
+                        </table>
+                    </div>
+                `;
+            } else {
+                affCont.innerHTML = '<div style="text-align:center; padding:14px; color:var(--text-muted); font-size:12px;">Không có công ty liên kết</div>';
+            }
+
+            // 10. CHARTS & LEADERSHIP
+            renderDonutChart(data.ownerships || {});
+            renderCharterLineChart(capitals);
+            renderLeadershipList(leads);
+
+            // 11. TAB 2, 3, 4
+            renderShareholdersTable();
+            renderDealsSummaryTable(deals);
+            renderInsiderDealsTable();
+            renderNewsTable();
+            renderEventsSubPane();
+            renderCapitalsTable();
+
+            // SHOW
+            document.getElementById('loadingBox').style.display = 'none';
+            document.getElementById('mainContent').style.display = 'block';
+        }
+
+        // ================= TAB 1: CHARTS & LEADERSHIP =================
+        function renderDonutChart(own) {
+            const govRatio = (own.govermentOwnership_Ratio || 0) * 100;
+            const forRatio = (own.foreignmentOwnership_Ratio || 0) * 100;
+            const otherRatio = (own.otherOwnership_Ratio != null ? own.otherOwnership_Ratio * 100 : Math.max(0, 100 - govRatio - forRatio));
+
+            const donutLabels = [
+                `Chính phủ ${govRatio.toFixed(1)}%`,
+                `Nước ngoài ${forRatio.toFixed(1)}%`,
+                `Khác ${otherRatio.toFixed(1)}%`
+            ];
+            const donutValues = [govRatio, forRatio, otherRatio];
+
+            const ctxDonut = document.getElementById('chartOwnershipDonut').getContext('2d');
+            if (ownershipChartInstance) ownershipChartInstance.destroy();
+            ownershipChartInstance = new Chart(ctxDonut, {
+                type: 'doughnut',
+                data: {
+                    labels: donutLabels,
+                    datasets: [{
+                        data: donutValues,
+                        backgroundColor: ['#3b82f6', '#ef4444', '#10b981'],
+                        borderWidth: 0
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { position: 'right', labels: { color: '#cbd5e1', font: { size: 11 }, usePointStyle: true, boxWidth: 8, padding: 12 } }
+                    },
+                    cutout: '70%'
+                }
+            });
+        }
+
+        function renderDonutChartTab2(own) {
+            const govRatio = (own.govermentOwnership_Ratio || 0) * 100;
+            const forRatio = (own.foreignmentOwnership_Ratio || 0) * 100;
+            const otherRatio = (own.otherOwnership_Ratio != null ? own.otherOwnership_Ratio * 100 : Math.max(0, 100 - govRatio - forRatio));
+
+            const donutLabels = [
+                `Chính phủ ${govRatio.toFixed(1)}%`,
+                `Nước ngoài ${forRatio.toFixed(1)}%`,
+                `Khác ${otherRatio.toFixed(1)}%`
+            ];
+            const donutValues = [govRatio, forRatio, otherRatio];
+
+            const ctx = document.getElementById('chartOwnershipDonutTab2').getContext('2d');
+            if (ownershipChartTab2Instance) ownershipChartTab2Instance.destroy();
+            ownershipChartTab2Instance = new Chart(ctx, {
+                type: 'doughnut',
+                data: {
+                    labels: donutLabels,
+                    datasets: [{
+                        data: donutValues,
+                        backgroundColor: ['#3b82f6', '#ef4444', '#10b981'],
+                        borderWidth: 0
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { position: 'right', labels: { color: '#cbd5e1', font: { size: 11 }, usePointStyle: true, boxWidth: 8, padding: 12 } }
+                    },
+                    cutout: '70%'
+                }
+            });
+        }
+
+        function renderCharterLineChart(capitals) {
+            const lineLabels = [];
+            const lineData = [];
+            capitals.forEach(c => {
+                if (c.text && c.value) {
+                    lineLabels.push(c.text);
+                    lineData.push(Math.round(c.value / 1e9));
+                }
+            });
+
+            const ctxLine = document.getElementById('chartCharterCapitalLine').getContext('2d');
+            if (charterChartInstance) charterChartInstance.destroy();
+            charterChartInstance = new Chart(ctxLine, {
+                type: 'line',
+                data: {
+                    labels: lineLabels,
+                    datasets: [{
+                        label: 'Vốn điều lệ (Tỷ)',
+                        data: lineData,
+                        borderColor: '#00f2fe',
+                        backgroundColor: 'rgba(0, 242, 254, 0.08)',
+                        borderWidth: 2,
+                        fill: true,
+                        tension: 0.25,
+                        pointRadius: 0,
+                        pointHoverRadius: 4
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { display: false },
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    return 'Vốn: ' + formatNum(context.parsed.y, 0) + ' Tỷ VNĐ';
+                                }
+                            }
+                        }
+                    },
+                    scales: {
+                        x: {
+                            grid: { display: false },
+                            ticks: { color: '#64748b', font: { size: 9 }, maxTicksLimit: 6, maxRotation: 45 }
+                        },
+                        y: {
+                            grid: { color: 'rgba(255, 255, 255, 0.04)' },
+                            ticks: {
+                                color: '#64748b',
+                                font: { size: 10 },
+                                callback: function(val) { return val >= 1000 ? (val / 1000) + 'k' : val; }
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+        function renderLeadershipList(leads) {
+            const leadsCont = document.getElementById('leadershipListContainer');
+            if (leads.length > 0) {
+                leadsCont.innerHTML = leads.map(l => {
+                    const avatarUrl = getAvatarUrl(l.avatar);
+                    const initial = l.name ? l.name.trim().split(' ').pop().charAt(0) : '?';
+                    const avatarHtml = avatarUrl ? 
+                        `<img src="${avatarUrl}" class="leader-avatar-neon" onerror="this.onerror=null; this.outerHTML='<div class=\'leader-avatar-neon\'>${initial}</div>'">` : 
+                        `<div class="leader-avatar-neon">${initial}</div>`;
+                    
+                    return `
+                        <div class="leader-row-card">
+                            ${avatarHtml}
+                            <div class="leader-details">
+                                <div class="leader-fullname">${l.name}</div>
+                                <div class="leader-position-tag">${l.position || 'Thành viên HĐQT'}</div>
+                            </div>
+                        </div>
+                    `;
+                }).join('');
+            } else {
+                leadsCont.innerHTML = '<div style="text-align:center; padding:20px; color:var(--text-muted);">Chưa có dữ liệu ban lãnh đạo.</div>';
+            }
+        }
+
+        // ================= TAB 2: CỔ ĐÔNG & GDNB =================
+        function setShareholderFilter(filterType) {
+            shFilter = filterType;
+            shCurrentPage = 1;
+            document.getElementById('btnShFilterAll').classList.toggle('active', filterType === 'all');
+            document.getElementById('btnShFilterOrg').classList.toggle('active', filterType === 'org');
+            document.getElementById('btnShFilterInd').classList.toggle('active', filterType === 'ind');
+            renderShareholdersTable();
+        }
+
+        function changeShareholderPage(delta) {
+            shCurrentPage += delta;
+            renderShareholdersTable();
+        }
+
+        function renderShareholdersTable() {
+            if (!globalData) return;
+            const majors = globalData.majorShareholders || [];
+            
+            let filtered = majors;
+            if (shFilter === 'org') {
+                filtered = majors.filter(s => s.isIndividual === false || s.type === 'Tổ chức');
+            } else if (shFilter === 'ind') {
+                filtered = majors.filter(s => s.isIndividual === true || s.type === 'Cá nhân');
+            }
+
+            const totalPages = Math.max(1, Math.ceil(filtered.length / SH_PAGE_SIZE));
+            if (shCurrentPage > totalPages) shCurrentPage = totalPages;
+            if (shCurrentPage < 1) shCurrentPage = 1;
+
+            document.getElementById('shPageCurrent').innerText = shCurrentPage;
+            document.getElementById('shPageTotal').innerText = totalPages;
+            document.getElementById('btnShPrev').disabled = (shCurrentPage <= 1);
+            document.getElementById('btnShNext').disabled = (shCurrentPage >= totalPages);
+
+            const startIdx = (shCurrentPage - 1) * SH_PAGE_SIZE;
+            const pagedItems = filtered.slice(startIdx, startIdx + SH_PAGE_SIZE);
+
+            const shTableBody = document.getElementById('tableMajorShareholdersBody');
+            if (pagedItems.length > 0) {
+                shTableBody.innerHTML = pagedItems.map((s, idx) => {
+                    const isOrg = s.isIndividual === false || s.type === 'Tổ chức';
+                    const icon = isOrg ? '<span style="font-size: 15px; margin-right: 6px;">🏛️</span>' : '<span style="font-size: 15px; margin-right: 6px;">👤</span>';
+                    const numRatio = s.ratio != null ? (s.ratio <= 1 ? s.ratio * 100 : s.ratio) : (s.percentage != null ? (s.percentage <= 1 ? s.percentage * 100 : s.percentage) : (s.ownership != null ? (s.ownership <= 1 ? s.ownership * 100 : s.ownership) : 0));
+                    const ratioStr = numRatio > 0 ? numRatio.toFixed(2) + '%' : '-';
+                    const barWidth = Math.min(100, Math.max(2, numRatio * 3));
+
+                    const safeName = (s.name || '').replace(/'/g, "\\'");
+                    return `
+                        <tr class="sh-row-interactive" onclick="openShareholderPortfolio('${safeName}')" title="Bấm để xem danh mục toàn bộ cổ phiếu của ${s.name}">
+                            <td style="text-align: center; color: var(--text-muted); font-weight: 700;">${startIdx + idx + 1}</td>
+                            <td style="font-weight: 600; color: #ffffff;">
+                                <div style="display: flex; align-items: center; justify-content: space-between;">
+                                    <div style="display: flex; align-items: center;">
+                                        ${icon}
+                                        <span style="font-weight: 700; color: #ffffff; text-decoration: underline dotted rgba(0,229,255,0.4);">${s.name}</span>
+                                    </div>
+                                    <span class="sh-holding-tag">Danh mục ↗</span>
+                                </div>
+                            </td>
+                            <td style="color: var(--text-secondary);">${s.position || '-'}</td>
+                            <td style="text-align: right; font-family: var(--font-mono); font-weight: 700; color: #ffffff;">${formatSharesTriệu(s.shares || s.quantity)}</td>
+                            <td style="text-align: right;">
+                                <div class="ownership-progress-wrap">
+                                    <div class="progress-track"><div class="progress-fill-bar" style="width: ${barWidth}%;"></div></div>
+                                    <span style="font-family: var(--font-mono); font-weight: 800; color: #ffffff; min-width: 48px;">${ratioStr}</span>
+                                </div>
+                            </td>
+                            <td style="text-align: right; font-family: var(--font-mono); color: var(--text-muted);">${formatDate(s.updatedDate || s.publicDate)}</td>
+                        </tr>
+                    `;
+                }).join('');
+            } else {
+                shTableBody.innerHTML = '<tr><td colspan="6" style="text-align:center; padding:16px; color:var(--text-muted);">Không có dữ liệu trong danh mục này.</td></tr>';
+            }
+        }
+
+        function changeDealType() {
+            dealType = document.getElementById('dealTypeSelect').value;
+            dealCurrentPage = 1;
+            renderInsiderDealsTable();
+        }
+
+        function changeDealPage(delta) {
+            dealCurrentPage += delta;
+            renderInsiderDealsTable();
+        }
+
+        function renderInsiderDealsTable() {
+            if (!globalData) return;
+            const items = (dealType === 'related') ? (globalData.relatedPersonDeals || []) : (globalData.insiderDeals || []);
+
+            const totalPages = Math.max(1, Math.ceil(items.length / DEAL_PAGE_SIZE));
+            if (dealCurrentPage > totalPages) dealCurrentPage = totalPages;
+            if (dealCurrentPage < 1) dealCurrentPage = 1;
+
+            document.getElementById('dealPageCurrent').innerText = dealCurrentPage;
+            document.getElementById('dealPageTotal').innerText = totalPages;
+            document.getElementById('btnDealPrev').disabled = (dealCurrentPage <= 1);
+            document.getElementById('btnDealNext').disabled = (dealCurrentPage >= totalPages);
+
+            const startIdx = (dealCurrentPage - 1) * DEAL_PAGE_SIZE;
+            const pagedItems = items.slice(startIdx, startIdx + DEAL_PAGE_SIZE);
+
+            const tableBody = document.getElementById('tableInsiderDealsBody');
+            if (pagedItems.length > 0) {
+                tableBody.innerHTML = pagedItems.map((d, idx) => {
+                    const isBuy = (d.actionTypeName && d.actionTypeName.toLowerCase().includes('mua')) || d.transactionType === 'Buy';
+                    const badgeClass = isBuy ? 'badge-buy' : 'badge-sell';
+                    const badgeText = isBuy ? 'Mua' : (d.actionTypeName || 'Bán');
+                    const ratioPost = d.ownershipAfterTrade != null ? (d.ownershipAfterTrade <= 1 ? (d.ownershipAfterTrade * 100).toFixed(2) : d.ownershipAfterTrade.toFixed(2)) + '%' : '0%';
+
+                    return `
+                        <tr>
+                            <td style="text-align: center; color: var(--text-muted); font-weight: 700;">${startIdx + idx + 1}</td>
+                            <td style="font-weight: 600; color: #ffffff;">${d.name || d.insiderName || '-'}</td>
+                            <td style="color: var(--text-secondary); font-size: 11.5px;">${d.positionName || d.roleFullName || d.roleName || '-'}</td>
+                            <td style="text-align: right; font-family: var(--font-mono);">${d.shareBeforeTrade ? formatNum(d.shareBeforeTrade, 0) : '0'}</td>
+                            <td style="text-align: right; font-family: var(--font-mono); color: #ffffff;">${d.shareRegister ? formatNum(d.shareRegister, 0) : '0'}</td>
+                            <td style="text-align: center;"><span class="badge-tag ${badgeClass}">${badgeText}</span></td>
+                            <td style="text-align: right; font-family: var(--font-mono); font-weight: 700; color: ${isBuy ? 'var(--accent-green)' : 'var(--accent-red)'};">${d.shareAcquire ? formatNum(d.shareAcquire, 0) : '0'}</td>
+                            <td style="text-align: center; font-family: var(--font-mono); color: var(--text-muted); font-size: 11.5px;">${formatDate(d.startDate)}</td>
+                            <td style="text-align: center; font-family: var(--font-mono); color: var(--text-muted); font-size: 11.5px;">${formatDate(d.endDate)}</td>
+                            <td style="text-align: right; font-family: var(--font-mono);">${d.shareAfterTrade ? formatNum(d.shareAfterTrade, 0) : '0'}</td>
+                            <td style="text-align: right; font-family: var(--font-mono); font-weight: 700; color: #ffffff;">${ratioPost}</td>
+                        </tr>
+                    `;
+                }).join('');
+            } else {
+                tableBody.innerHTML = `<tr><td colspan="11" style="text-align:center; padding:16px; color:var(--text-muted);">Không có dữ liệu ${dealType === 'related' ? 'giao dịch người liên quan' : 'giao dịch cổ đông nội bộ'}.</td></tr>`;
+            }
+        }
+
+        function renderDealsSummaryTable(deals) {
+            const dealsTableBody = document.getElementById('tableDealsSummaryBody');
+            if (deals && deals.length > 0) {
+                dealsTableBody.innerHTML = deals.map(d => `
+                    <tr>
+                        <td style="font-weight: 700; font-family: var(--font-mono); color: #ffffff;">${d.year || d.time || '-'}</td>
+                        <td style="text-align: right; font-family: var(--font-mono); color: var(--accent-green); font-weight: 800;">${d.shareAcquire_Buy ? formatNum(d.shareAcquire_Buy, 0) : '-'}</td>
+                        <td style="text-align: right; font-family: var(--font-mono); color: var(--accent-red); font-weight: 800;">${d.shareAcquire_Sell ? formatNum(d.shareAcquire_Sell, 0) : '-'}</td>
+                    </tr>
+                `).join('');
+            } else {
+                dealsTableBody.innerHTML = '<tr><td colspan="3" style="text-align:center; padding:14px; color:var(--text-muted);">Chưa có thống kê theo năm.</td></tr>';
+            }
+        }
+
+        // ================= TAB 3: TIN TỨC & BÀI VIẾT =================
+        function getArticleDirectUrl(n) {
+            if (n.sourceLink && n.sourceLink.startsWith('http')) {
+                return n.sourceLink;
+            }
+            const slug = boDauTiengViet(n.title || '');
+            return `https://stockbiz.vn/tin-tuc/${slug}/${n.id}`;
+        }
+
+        async function openArticleDirectly(newsIndex) {
+            if (!globalData || !globalData.news || !globalData.news[newsIndex]) return;
+            const n = globalData.news[newsIndex];
+            if (n.sourceLink && n.sourceLink.startsWith('http')) {
+                window.open(n.sourceLink, '_blank', 'noopener,noreferrer');
+                return;
+            }
+            try {
+                const res = await fetch(`/api/fialda/news-detail?id=${n.id}`);
+                if (res.ok) {
+                    const det = await res.json();
+                    if (det && det.sourceLink) {
+                        n.sourceLink = det.sourceLink;
+                        window.open(det.sourceLink, '_blank', 'noopener,noreferrer');
+                        return;
+                    }
+                }
+            } catch(e) {}
+            window.open(getArticleDirectUrl(n), '_blank', 'noopener,noreferrer');
+        }
+
+        function changeNewsPage(delta) {
+            newsCurrentPage += delta;
+            renderNewsTable();
+        }
+
+        function renderNewsTable() {
+            if (!globalData) return;
+            const news = globalData.news || [];
+
+            const totalPages = Math.max(1, Math.ceil(news.length / NEWS_PAGE_SIZE));
+            if (newsCurrentPage > totalPages) newsCurrentPage = totalPages;
+            if (newsCurrentPage < 1) newsCurrentPage = 1;
+
+            document.getElementById('newsPageCurrent').innerText = newsCurrentPage;
+            document.getElementById('newsPageTotal').innerText = totalPages;
+            document.getElementById('btnNewsPrev').disabled = (newsCurrentPage <= 1);
+            document.getElementById('btnNewsNext').disabled = (newsCurrentPage >= totalPages);
+
+            const startIdx = (newsCurrentPage - 1) * NEWS_PAGE_SIZE;
+            const pagedNews = news.slice(startIdx, startIdx + NEWS_PAGE_SIZE);
+
+            const container = document.getElementById('newsListContainer');
+            if (pagedNews.length > 0) {
+                container.innerHTML = pagedNews.map((n, idx) => {
+                    const globalIdx = startIdx + idx;
+                    const imgUrl = getNewsImageUrl(n.imageUrl);
+                    const sourceText = n.source || 'Báo chí';
+                    const pubTimeText = formatDateTime(n.publishedTime || n.publishDate);
+
+                    return `
+                        <div class="news-article-card">
+                            ${imgUrl ? `<img src="${imgUrl}" class="news-img-cover" alt="News" onclick="openArticleDirectly(${globalIdx})" onerror="this.style.display='none'">` : ''}
+                            <div class="news-body-content">
+                                <div>
+                                    <div class="news-headline" onclick="openArticleDirectly(${globalIdx})">${n.title}</div>
+                                    <div class="news-snippet">${n.shortContent || n.summary || 'Nhấn để mở bài viết gốc...'}</div>
+                                </div>
+                                <div class="news-meta-footer">
+                                    <span>🕒 ${pubTimeText}</span>
+                                    <span>• ${sourceText}</span>
+                                    <div style="display: flex; gap: 8px; margin-left: auto;">
+                                        <button class="btn-link-action" onclick="openArticleDirectly(${globalIdx})" style="color: var(--accent-cyan); font-weight: 700;">🔗 Mở bài viết</button>
+                                        <button class="btn-link-action" onclick="openNewsModal(${globalIdx})" style="color: var(--accent-purple);">👁️ Xem tóm tắt</button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                }).join('');
+            } else {
+                container.innerHTML = '<div style="text-align:center; padding:24px; color:var(--text-muted);">Chưa có bài viết tin tức nào.</div>';
+            }
+        }
+
+        async function openNewsModal(newsIndex) {
+            if (!globalData || !globalData.news || !globalData.news[newsIndex]) return;
+            const n = globalData.news[newsIndex];
+            const directUrl = getArticleDirectUrl(n);
+
+            document.getElementById('modalArticleTitle').innerText = n.title || '-';
+            document.getElementById('modalArticleMeta').innerText = `Theo: ${n.source || 'Báo chí'} | ${formatDateTime(n.publishedTime || n.publishDate)}`;
+            document.getElementById('modalArticleSummary').innerText = n.shortContent || n.summary || 'Bài viết được tổng hợp từ nguồn thông tin thị trường chứng khoán.';
+            document.getElementById('modalArticleContent').innerHTML = (n.fullContent || n.content || '<div style="color:var(--text-muted); font-style:italic;">Đang tải toàn văn bài viết từ nguồn báo gốc...</div>');
+            
+            const sourceLinkEl = document.getElementById('modalSourceDirectLink');
+            sourceLinkEl.href = directUrl;
+
+            document.getElementById('newsArticleModal').classList.add('open');
+
+            if (!n.fullContent || !n.sourceLink) {
+                try {
+                    const res = await fetch(`/api/fialda/news-detail?id=${n.id}`);
+                    if (res.ok) {
+                        const det = await res.json();
+                        if (det && det.sourceLink) {
+                            n.sourceLink = det.sourceLink;
+                            sourceLinkEl.href = det.sourceLink;
+                        }
+                        if (det && det.fullContent) {
+                            n.fullContent = det.fullContent;
+                            document.getElementById('modalArticleContent').innerHTML = det.fullContent;
+                        }
+                        if (det && det.source) {
+                            n.source = det.source;
+                            document.getElementById('modalArticleMeta').innerText = `Theo: ${det.source} | ${formatDateTime(n.publishedTime || n.publishDate)}`;
+                        }
+                    }
+                } catch(e) {}
+            }
+        }
+
+        function closeNewsModal(e) {
+            if (!e || e.target.id === 'newsArticleModal' || e.target.classList.contains('modal-close')) {
+                document.getElementById('newsArticleModal').classList.remove('open');
+            }
+        }
+
+        // ================= TAB 3: LỊCH SỰ KIỆN =================
+        function setEventSubTab(subTab) {
+            currentEventSubTab = subTab;
+            ['cotuc', 'gdnb', 'cdl', 'phathanh', 'dhcd', 'cpquy', 'all'].forEach(t => {
+                const btn = document.getElementById('btnEventTab-' + t);
+                if (btn) btn.classList.toggle('active', t === subTab);
+            });
+
+            if (subTab === 'cotuc') {
+                document.getElementById('eventSubPane-cotuc').style.display = 'block';
+                document.getElementById('eventSubPane-generic').style.display = 'none';
+                renderCashDividendsTable();
+                renderStockDividendsTable();
+            } else {
+                document.getElementById('eventSubPane-cotuc').style.display = 'none';
+                document.getElementById('eventSubPane-generic').style.display = 'block';
+                genericEventCurrentPage = 1;
+                renderGenericEventsTable();
+            }
+        }
+
+        function changeCashDivPage(delta) {
+            cashDivCurrentPage += delta;
+            renderCashDividendsTable();
+        }
+
+        function renderCashDividendsTable() {
+            if (!globalData) return;
+            const items = globalData.cashDividends || [];
+
+            const totalPages = Math.max(1, Math.ceil(items.length / EVENT_PAGE_SIZE));
+            if (cashDivCurrentPage > totalPages) cashDivCurrentPage = totalPages;
+            if (cashDivCurrentPage < 1) cashDivCurrentPage = 1;
+
+            document.getElementById('cashDivPageCurrent').innerText = cashDivCurrentPage;
+            document.getElementById('cashDivPageTotal').innerText = totalPages;
+            document.getElementById('btnCashDivPrev').disabled = (cashDivCurrentPage <= 1);
+            document.getElementById('btnCashDivNext').disabled = (cashDivCurrentPage >= totalPages);
+
+            const startIdx = (cashDivCurrentPage - 1) * EVENT_PAGE_SIZE;
+            const pagedItems = items.slice(startIdx, startIdx + EVENT_PAGE_SIZE);
+
+            const body = document.getElementById('tableCashDivsBody');
+            if (pagedItems.length > 0) {
+                body.innerHTML = pagedItems.map((d, idx) => `
+                    <tr>
+                        <td style="text-align: center; color: var(--text-muted); font-weight: 700;">${startIdx + idx + 1}</td>
+                        <td style="text-align: center; font-family: var(--font-mono); color: var(--accent-cyan); font-weight: 600;">${formatDate(d.exrightDate || d.recordDate)}</td>
+                        <td style="text-align: center; font-family: var(--font-mono); color: var(--text-muted);">${formatDate(d.recordDate)}</td>
+                        <td style="text-align: center; font-family: var(--font-mono); color: var(--text-muted);">${formatDate(d.issuedDate || d.startDate)}</td>
+                        <td style="text-align: right; font-family: var(--font-mono); font-weight: 700; color: #ffffff;">${d.eventRatioStr || (d.eventRatio ? (d.eventRatio * 100) + '%' : '-') || '-'}</td>
+                        <td style="color: #ffffff;">${d.eventName || d.note || 'Chi trả cổ tức bằng tiền mặt'}</td>
+                    </tr>
+                `).join('');
+            } else {
+                body.innerHTML = '<tr><td colspan="6" style="text-align:center; padding:14px; color:var(--text-muted);">Không có dữ liệu cổ tức tiền mặt.</td></tr>';
+            }
+        }
+
+        function changeStockDivPage(delta) {
+            stockDivCurrentPage += delta;
+            renderStockDividendsTable();
+        }
+
+        function renderStockDividendsTable() {
+            if (!globalData) return;
+            const items = globalData.stockDividends || [];
+
+            const totalPages = Math.max(1, Math.ceil(items.length / EVENT_PAGE_SIZE));
+            if (stockDivCurrentPage > totalPages) stockDivCurrentPage = totalPages;
+            if (stockDivCurrentPage < 1) stockDivCurrentPage = 1;
+
+            document.getElementById('stockDivPageCurrent').innerText = stockDivCurrentPage;
+            document.getElementById('stockDivPageTotal').innerText = totalPages;
+            document.getElementById('btnStockDivPrev').disabled = (stockDivCurrentPage <= 1);
+            document.getElementById('btnStockDivNext').disabled = (stockDivCurrentPage >= totalPages);
+
+            const startIdx = (stockDivCurrentPage - 1) * EVENT_PAGE_SIZE;
+            const pagedItems = items.slice(startIdx, startIdx + EVENT_PAGE_SIZE);
+
+            const body = document.getElementById('tableStockDivsBody');
+            if (pagedItems.length > 0) {
+                body.innerHTML = pagedItems.map((d, idx) => `
+                    <tr>
+                        <td style="text-align: center; color: var(--text-muted); font-weight: 700;">${startIdx + idx + 1}</td>
+                        <td style="text-align: center; font-family: var(--font-mono); color: var(--accent-cyan); font-weight: 600;">${formatDate(d.exrightDate || d.recordDate)}</td>
+                        <td style="text-align: center; font-family: var(--font-mono); color: var(--text-muted);">${formatDate(d.recordDate)}</td>
+                        <td style="text-align: right; font-family: var(--font-mono); font-weight: 700; color: #ffffff;">${d.eventRatioStr || (d.eventRatio ? (d.eventRatio * 100) + '%' : '-') || '-'}</td>
+                        <td style="text-align: right; font-family: var(--font-mono); color: #ffffff;">${d.eventValue ? formatNum(d.eventValue, 0) : '-'}</td>
+                        <td style="color: #ffffff;">${d.eventName || d.note || 'Chi trả cổ tức bằng cổ phiếu'}</td>
+                    </tr>
+                `).join('');
+            } else {
+                body.innerHTML = '<tr><td colspan="6" style="text-align:center; padding:14px; color:var(--text-muted);">Không có dữ liệu cổ tức cổ phiếu.</td></tr>';
+            }
+        }
+
+        function changeGenericEventPage(delta) {
+            genericEventCurrentPage += delta;
+            renderGenericEventsTable();
+        }
+
+        function renderGenericEventsTable() {
+            if (!globalData) return;
+            let items = [];
+            if (currentEventSubTab === 'gdnb') items = globalData.insiderDeals || [];
+            else if (currentEventSubTab === 'cdl') items = globalData.majorHolderDealsEvents || globalData.majorShareholders || [];
+            else if (currentEventSubTab === 'phathanh') items = (globalData.stockDividends || []).concat(globalData.bonusEvents || []);
+            else if (currentEventSubTab === 'dhcd') items = globalData.agmEvents || [];
+            else if (currentEventSubTab === 'cpquy') items = globalData.treasuryEvents || [];
+            else if (currentEventSubTab === 'all') items = globalData.briefEvents || [];
+
+            const totalPages = Math.max(1, Math.ceil(items.length / EVENT_PAGE_SIZE));
+            if (genericEventCurrentPage > totalPages) genericEventCurrentPage = totalPages;
+            if (genericEventCurrentPage < 1) genericEventCurrentPage = 1;
+
+            document.getElementById('genericEventPageCurrent').innerText = genericEventCurrentPage;
+            document.getElementById('genericEventPageTotal').innerText = totalPages;
+            document.getElementById('btnGenericEventPrev').disabled = (genericEventCurrentPage <= 1);
+            document.getElementById('btnGenericEventNext').disabled = (genericEventCurrentPage >= totalPages);
+
+            const startIdx = (genericEventCurrentPage - 1) * EVENT_PAGE_SIZE;
+            const pagedItems = items.slice(startIdx, startIdx + EVENT_PAGE_SIZE);
+
+            const body = document.getElementById('tableGenericEventsBody');
+            if (pagedItems.length > 0) {
+                body.innerHTML = pagedItems.map((e, idx) => {
+                    const title = e.eventName || e.title || e.eventTitle || e.name || e.note || '-';
+                    const ratio = e.eventRatioStr || (e.eventRatio ? (e.eventRatio * 100) + '%' : (e.ratio ? (e.ratio * 100).toFixed(2) + '%' : '-'));
+                    return `
+                        <tr>
+                            <td style="text-align: center; color: var(--text-muted); font-weight: 700;">${startIdx + idx + 1}</td>
+                            <td style="text-align: center; font-family: var(--font-mono); color: var(--text-muted);">${formatDate(e.publicDate || e.issuedDate || e.startDate)}</td>
+                            <td style="text-align: center; font-family: var(--font-mono); color: var(--accent-cyan); font-weight: 600;">${formatDate(e.exrightDate || e.recordDate)}</td>
+                            <td style="color: #ffffff; font-weight: 600;">${title}</td>
+                            <td style="text-align: right; font-family: var(--font-mono); color: #ffffff;">${ratio}</td>
+                        </tr>
+                    `;
+                }).join('');
+            } else {
+                body.innerHTML = '<tr><td colspan="5" style="text-align:center; padding:14px; color:var(--text-muted);">Không có sự kiện trong mục này.</td></tr>';
+            }
+        }
+
+        function renderEventsSubPane() {
+            setEventSubTab(currentEventSubTab);
+        }
+
+        // ================= TAB 4: LỊCH SỬ TĂNG VỐN =================
+        function changeCapPage(delta) {
+            capCurrentPage += delta;
+            renderCapitalsTable();
+        }
+
+        function renderCapitalsTable() {
+            if (!globalData) return;
+            const capitals = globalData.charterCapitals || [];
+            const revCaps = [...capitals].reverse();
+
+            const totalPages = Math.max(1, Math.ceil(revCaps.length / CAP_PAGE_SIZE));
+            if (capCurrentPage > totalPages) capCurrentPage = totalPages;
+            if (capCurrentPage < 1) capCurrentPage = 1;
+
+            document.getElementById('capPageCurrent').innerText = capCurrentPage;
+            document.getElementById('capPageTotal').innerText = totalPages;
+            document.getElementById('btnCapPrev').disabled = (capCurrentPage <= 1);
+            document.getElementById('btnCapNext').disabled = (capCurrentPage >= totalPages);
+
+            const startIdx = (capCurrentPage - 1) * CAP_PAGE_SIZE;
+            const pagedItems = revCaps.slice(startIdx, startIdx + CAP_PAGE_SIZE);
+
+            const capsTableBody = document.getElementById('tableCharterCapitalsBody');
+            if (pagedItems.length > 0) {
+                capsTableBody.innerHTML = pagedItems.map((c, idx) => `
+                    <tr>
+                        <td style="text-align: center; color: var(--text-muted); font-weight: 700;">${startIdx + idx + 1}</td>
+                        <td style="font-weight: 700; font-family: var(--font-mono); color: var(--accent-cyan);">${c.text || c.year || '-'}</td>
+                        <td style="text-align: right; font-family: var(--font-mono);">${c.value ? formatNum(c.value, 0) : '-'}</td>
+                        <td style="text-align: right; font-family: var(--font-mono); font-weight: 800; color: var(--accent-green);">${c.value ? (c.value / 1e9).toFixed(2) + ' Tỷ' : '-'}</td>
+                    </tr>
+                `).join('');
+            } else {
+                capsTableBody.innerHTML = '<tr><td colspan="4" style="text-align:center; padding:14px; color:var(--text-muted);">Chưa có dữ liệu tăng vốn.</td></tr>';
+            }
+        }
+
+        // Start loading data
+        loadCompanyData();
+    
+        // ================= SHAREHOLDER PORTFOLIO SYSTEM =================
+        let g_currentShData = null;
+        let g_currentShFilterFloor = 'all';
+        let g_currentShSearchQuery = '';
+        let g_shDonutChart = null;
+
+        function getShareholderSlug(name) {
+            if (!name) return '';
+            const norm = name.trim().toLowerCase().normalize('NFC');
+            let s = norm;
+            s = s.replace(/[àáạảãâầấậẩẫăằắặẳẵ]/g, 'a');
+            s = s.replace(/[èéẹẻẽêềếệểễ]/g, 'e');
+            s = s.replace(/[ìíịỉĩ]/g, 'i');
+            s = s.replace(/[òóọỏõôồốộổỗơờớợởỡ]/g, 'o');
+            s = s.replace(/[ùúụủũưừứựửữ]/g, 'u');
+            s = s.replace(/[ỳýỵỷỹ]/g, 'y');
+            s = s.replace(/[đ]/g, 'd');
+            const clean = s.replace(/[^a-z0-9_]+/g, '_').replace(/^_+|_+$/g, '').substring(0, 40);
+
+            let h = 5381;
+            for (let i = 0; i < norm.length; i++) {
+                h = (((h << 5) + h) + norm.charCodeAt(i)) & 0xFFFFFFFF;
+            }
+            const hashHex = (h >>> 0).toString(16).padStart(8, '0');
+            return `${clean}_${hashHex}`;
+        }
+
+        async function openShareholderPortfolio(name) {
+            if (!name) return;
+            const cleanName = name.trim();
+            const slug = getShareholderSlug(cleanName);
+
+            // Open modal immediately
+            const modal = document.getElementById('shareholderModal');
+            if (modal) modal.classList.add('show');
+
+            // Set loading state
+            document.getElementById('shModalName').innerText = cleanName;
+            document.getElementById('shModalType').innerText = 'Đang tải dữ liệu...';
+            document.getElementById('shModalAvatar').innerText = '⏳';
+            document.getElementById('shKpiHoldings').innerText = '...';
+            document.getElementById('shKpiMarketVal').innerText = '...';
+            document.getElementById('shKpiShares').innerText = '...';
+            document.getElementById('shKpiTopSymbol').innerText = '...';
+            document.getElementById('shTableBody').innerHTML = '<tr><td colspan="8" style="text-align:center; padding:30px; color:var(--accent-cyan);"><div class="spinner-ring" style="width:24px; height:24px; margin:0 auto 10px;"></div>Đang tải danh mục cổ phiếu...</td></tr>';
+
+            let data = null;
+
+            // 1. Try instant static JSON
+            try {
+                const res = await fetch(`/shareholder_data/${slug}.json?v=${Date.now()}`);
+                if (res.ok) {
+                    data = await res.json();
+                }
+            } catch (e) {
+                console.warn('Error fetching static shareholder:', e);
+            }
+
+            // 2. Fallback to API if static slug failed
+            if (!data) {
+                try {
+                    const res2 = await fetch(`/api/fialda/shareholder-portfolio?name=${encodeURIComponent(cleanName)}`);
+                    if (res2.ok) {
+                        const json2 = await res2.json();
+                        if (json2 && json2.status === 'success' && json2.data) {
+                            data = json2.data;
+                        }
+                    }
+                } catch (e) {
+                    console.warn('Error fetching API shareholder:', e);
+                }
+            }
+
+            if (!data || !data.holdings || data.holdings.length === 0) {
+                document.getElementById('shModalType').innerText = 'Chưa có danh mục';
+                document.getElementById('shModalAvatar').innerText = '⚠️';
+                document.getElementById('shTableBody').innerHTML = `<tr><td colspan="8" style="text-align:center; padding:30px; color:var(--text-muted);">Không tìm thấy dữ liệu danh mục nắm giữ của cổ đông <b>${cleanName}</b> trên hệ thống.</td></tr>`;
+                return;
+            }
+
+            g_currentShData = data;
+            g_currentShFilterFloor = 'all';
+            g_currentShSearchQuery = '';
+
+            // Set Header
+            document.getElementById('shModalName').innerText = data.name || cleanName;
+            document.getElementById('shModalType').innerText = data.isIndividual ? 'Cá nhân' : 'Tổ chức / Quỹ đầu tư';
+            document.getElementById('shModalAvatar').innerText = data.isIndividual ? '👤' : '🏛️';
+
+            // Set KPIs
+            document.getElementById('shKpiHoldings').innerText = `${data.totalHoldings || data.holdings.length} mã CP`;
+            document.getElementById('shKpiMarketVal').innerText = `${formatNum(data.totalMarketValueTy || 0, 1)} Tỷ VNĐ`;
+            const totalSh = data.totalShares || 0;
+            document.getElementById('shKpiShares').innerText = totalSh >= 1e9 ? `${(totalSh/1e9).toFixed(2)} Tỷ CP` : `${(totalSh/1e6).toFixed(2)} Triệu CP`;
+            
+            const topH = data.holdings && data.holdings.length > 0 ? data.holdings[0] : null;
+            if (topH) {
+                document.getElementById('shKpiTopSymbol').innerText = `${topH.symbol} (${formatNum(topH.marketValueTy || 0, 1)} Tỷ - ${topH.weight || 0}%)`;
+            } else {
+                document.getElementById('shKpiTopSymbol').innerText = '-';
+            }
+
+            // Reset search input & filter buttons
+            if (document.getElementById('shSearchInput')) document.getElementById('shSearchInput').value = '';
+            document.querySelectorAll('#shareholderModal .filter-pill').forEach(b => b.classList.remove('active'));
+            if (document.getElementById('btnShFloor-all')) document.getElementById('btnShFloor-all').classList.add('active');
+
+            renderShareholderHoldingsTable();
+            setTimeout(() => renderShareholderDonutChart(), 60);
+        }
+
+        function closeShareholderModal() {
+            const modal = document.getElementById('shareholderModal');
+            if (modal) modal.classList.remove('show');
+        }
+
+        function filterShFloor(floor) {
+            g_currentShFilterFloor = floor;
+            document.querySelectorAll('#shareholderModal .filter-pill').forEach(b => b.classList.remove('active'));
+            const btn = document.getElementById(`btnShFloor-${floor}`);
+            if (btn) btn.classList.add('active');
+            renderShareholderHoldingsTable();
+        }
+
+        function onShSearchInput(val) {
+            g_currentShSearchQuery = (val || '').toLowerCase().trim();
+            renderShareholderHoldingsTable();
+        }
+
+        function navigateToSymbol(sym) {
+            if (!sym) return;
+            closeShareholderModal();
+            window.location.href = `/company.html?v=${Date.now()}&symbol=${sym.toUpperCase()}`;
+        }
+
+        function renderShareholderHoldingsTable() {
+            if (!g_currentShData || !g_currentShData.holdings) return;
+            const tbody = document.getElementById('shTableBody');
+            
+            let list = g_currentShData.holdings;
+            if (g_currentShFilterFloor !== 'all') {
+                list = list.filter(h => (h.exchange || '').toUpperCase() === g_currentShFilterFloor);
+            }
+            if (g_currentShSearchQuery) {
+                list = list.filter(h => 
+                    (h.symbol || '').toLowerCase().includes(g_currentShSearchQuery) || 
+                    (h.companyName || '').toLowerCase().includes(g_currentShSearchQuery)
+                );
+            }
+
+            if (list.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="8" style="text-align:center; padding:20px; color:var(--text-muted);">Không tìm thấy cổ phiếu phù hợp bộ lọc.</td></tr>';
+                return;
+            }
+
+            tbody.innerHTML = list.map((h, idx) => {
+                const ratioPct = h.ownership ? (h.ownership <= 1 ? h.ownership * 100 : h.ownership) : 0;
+                const ratioPctFmt = ratioPct.toFixed(2);
+                const barWidth = Math.min(100, Math.max(4, ratioPct));
+                const valTy = h.marketValueTy || 0;
+                const weight = h.weight || 0;
+
+                return `
+                    <tr class="sh-row-interactive" onclick="navigateToSymbol('${h.symbol}')" title="Bấm để xem Hồ sơ doanh nghiệp ${h.symbol}">
+                        <td style="text-align: center; color: var(--text-muted); font-weight: 700;">${idx + 1}</td>
+                        <td>
+                            <div style="display: flex; align-items: center; gap: 8px;">
+                                <div style="width: 26px; height: 26px; border-radius: 50%; background: #1a2233; border: 1px solid rgba(0,229,255,0.3); display: flex; align-items: center; justify-content: center; font-size: 10px; font-weight: 800; color: #00e5ff; overflow: hidden; flex-shrink: 0;">
+                                    <img src="https://cdn.simplize.vn/simplizevn/logo/${h.symbol}.jpeg" onerror="this.style.display='none'; this.nextElementSibling.style.display='block';" style="width:100%; height:100%; object-fit:contain;">
+                                    <span style="display:none;">${h.symbol.substring(0,2)}</span>
+                                </div>
+                                <div>
+                                    <div style="font-weight: 800; color: var(--accent-cyan); font-size: 13px;">${h.symbol} <span style="font-size: 10px; color: #94a3b8; font-weight: normal;">↗</span></div>
+                                    <div style="font-size: 11px; color: #cbd5e1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 220px;">${h.companyName}</div>
+                                </div>
+                            </div>
+                        </td>
+                        <td style="text-align: center;">
+                            <span class="pill-exchange" style="font-size: 10px; padding: 2px 6px;">${h.exchange || 'HOSE'}</span>
+                        </td>
+                        <td style="text-align: right; font-family: var(--font-mono); font-weight: 700; color: #ffffff;">
+                            ${formatSharesTriệu(h.shares || 0)}
+                        </td>
+                        <td style="text-align: right; font-family: var(--font-mono);">
+                            <div style="font-weight: 800; color: var(--accent-green); margin-bottom: 2px;">${ratioPctFmt}%</div>
+                            <div class="progress-bar-bg" style="width: 65px; margin-left: auto;">
+                                <div class="progress-bar-fill" style="width: ${barWidth}%;"></div>
+                            </div>
+                        </td>
+                        <td style="text-align: right; font-family: var(--font-mono); font-weight: 800; color: #ffd700;">
+                            ${formatNum(valTy, 1)} Tỷ
+                        </td>
+                        <td style="text-align: right; font-family: var(--font-mono); color: #94a3b8;">
+                            ${weight.toFixed(1)}%
+                        </td>
+                        <td style="text-align: center; font-family: var(--font-mono); color: var(--text-muted); font-size: 11px;">
+                            ${formatDate(h.updatedDate)}
+                        </td>
+                    </tr>
+                `;
+            }).join('');
+        }
+
+        function renderShareholderDonutChart() {
+            if (!g_currentShData || !g_currentShData.holdings) return;
+            const canvas = document.getElementById('chartShPortfolioDonut');
+            if (!canvas) return;
+
+            if (g_shDonutChart) {
+                try { g_shDonutChart.destroy(); } catch (e) {}
+                g_shDonutChart = null;
+            }
+
+            const holdings = g_currentShData.holdings;
+            const top5 = holdings.slice(0, 5);
+            const others = holdings.slice(5);
+            
+            const labels = top5.map(h => h.symbol);
+            const dataValues = top5.map(h => {
+                const v = h.marketValueTy != null ? h.marketValueTy : ((h.shares || 0) / 1e6);
+                return Math.round(Number(v) * 10) / 10;
+            });
+            
+            if (others.length > 0) {
+                const otherVal = others.reduce((sum, h) => {
+                    const v = h.marketValueTy != null ? h.marketValueTy : ((h.shares || 0) / 1e6);
+                    return sum + Number(v);
+                }, 0);
+                labels.push(`Khác (${others.length} mã)`);
+                dataValues.push(Math.round(otherVal * 10) / 10);
+            }
+
+            const totalVal = dataValues.reduce((a, b) => a + b, 0);
+            const colors = ['#00f2fe', '#3b82f6', '#10b981', '#f59e0b', '#8b5cf6', '#64748b'];
+
+            try {
+                g_shDonutChart = new Chart(canvas, {
+                    type: 'doughnut',
+                    data: {
+                        labels: labels,
+                        datasets: [{
+                            data: dataValues,
+                            backgroundColor: colors.slice(0, labels.length),
+                            borderColor: '#111726',
+                            borderWidth: 2
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        cutout: '62%',
+                        plugins: {
+                            legend: { display: false },
+                            tooltip: {
+                                callbacks: {
+                                    label: function(c) {
+                                        const val = c.raw || 0;
+                                        const pct = totalVal > 0 ? ((val / totalVal) * 100).toFixed(1) : 0;
+                                        return ` ${c.label}: ${formatNum(val, 1)} Tỷ (${pct}%)`;
+                                    }
+                                }
+                            }
+                        }
+                    }
+                });
+            } catch (err) {
+                console.error("Error creating shareholder donut chart:", err);
+            }
+
+            const legendBox = document.getElementById('shPortfolioBreakdownLegend');
+            if (legendBox) {
+                legendBox.innerHTML = labels.map((lbl, i) => {
+                    const val = dataValues[i] || 0;
+                    const pct = totalVal > 0 ? ((val / totalVal) * 100).toFixed(1) : '0';
+                    return `
+                        <div style="display: flex; justify-content: space-between; align-items: center; padding: 4px 0; border-bottom: 1px solid rgba(255,255,255,0.04);">
+                            <div style="display: flex; align-items: center; gap: 6px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
+                                <span style="width: 8px; height: 8px; border-radius: 50%; background: ${colors[i]}; display: inline-block; flex-shrink: 0;"></span>
+                                <span style="color: #cbd5e1; font-weight: 600;">${lbl}</span>
+                            </div>
+                            <div style="text-align: right; font-family: var(--font-mono); white-space: nowrap;">
+                                <span style="color: #fff; font-weight: 700;">${formatNum(val, 1)} Tỷ</span>
+                                <span style="color: var(--text-muted); font-size: 10px; margin-left: 4px;">(${pct}%)</span>
+                            </div>
+                        </div>
+                    `;
+                }).join('');
+            }
+        }
+
+    </script>
+
+    <!-- MODAL CHI TIẾT DANH MỤC CỔ ĐÔNG (PORTFOLIO) -->
+    <div id="shareholderModal" onclick="if(event.target===this) closeShareholderModal()">
+        <div class="sh-modal-dialog">
+            <div class="sh-modal-header">
+                <div class="sh-header-left">
+                    <div class="sh-avatar-icon" id="shModalAvatar">🏛️</div>
+                    <div>
+                        <div class="sh-name-title">
+                            <span id="shModalName">Cổ đông</span>
+                            <span class="sh-type-tag" id="shModalType">Tổ chức</span>
+                        </div>
+                        <div style="font-size: 12px; color: #94a3b8; margin-top: 2px;">
+                            Danh mục cổ phiếu đang nắm giữ trên thị trường Việt Nam
+                        </div>
+                    </div>
+                </div>
+                <button class="sh-btn-close" onclick="closeShareholderModal()">&times;</button>
+            </div>
+
+            <!-- KPI SUMMARY RIBBON -->
+            <div class="sh-kpi-ribbon">
+                <div class="sh-kpi-card">
+                    <div class="sh-kpi-label">Tổng số mã nắm giữ</div>
+                    <div class="sh-kpi-val" id="shKpiHoldings" style="color: var(--accent-cyan);">0 mã</div>
+                </div>
+                <div class="sh-kpi-card">
+                    <div class="sh-kpi-label">Tổng giá trị tài sản ước tính</div>
+                    <div class="sh-kpi-val" id="shKpiMarketVal" style="color: #ffd700;">0 Tỷ VNĐ</div>
+                </div>
+                <div class="sh-kpi-card">
+                    <div class="sh-kpi-label">Tổng khối lượng CP</div>
+                    <div class="sh-kpi-val" id="shKpiShares">0 CP</div>
+                </div>
+                <div class="sh-kpi-card">
+                    <div class="sh-kpi-label">Mã chiếm tỷ trọng lớn nhất</div>
+                    <div class="sh-kpi-val" id="shKpiTopSymbol" style="color: var(--accent-green);">-</div>
+                </div>
+            </div>
+
+            <!-- SEARCH & FILTER TOOLBAR -->
+            <div style="padding: 10px 22px 0 22px; display: flex; justify-content: space-between; align-items: center; gap: 10px; flex-shrink: 0;">
+                <div style="display: flex; align-items: center; gap: 8px;">
+                    <button class="filter-pill active" id="btnShFloor-all" onclick="filterShFloor('all')">Tất cả sàn</button>
+                    <button class="filter-pill" id="btnShFloor-HOSE" onclick="filterShFloor('HOSE')">HOSE</button>
+                    <button class="filter-pill" id="btnShFloor-HNX" onclick="filterShFloor('HNX')">HNX</button>
+                    <button class="filter-pill" id="btnShFloor-UPCOM" onclick="filterShFloor('UPCOM')">UPCOM</button>
+                </div>
+                <div style="width: 280px;">
+                    <input type="text" id="shSearchInput" placeholder="🔍 Tìm kiếm mã hoặc tên công ty..." 
+                           oninput="onShSearchInput(this.value)"
+                           style="width: 100%; background: #141a27; border: 1px solid rgba(255,255,255,0.12); border-radius: 6px; padding: 6px 12px; color: #fff; font-size: 12px; outline: none;">
+                </div>
+            </div>
+
+            <!-- MODAL BODY SPLIT -->
+            <div class="sh-body-split">
+                <!-- CỘT TRÁI: BẢNG DANH MỤC CỔ PHIẾU -->
+                <div>
+                    <div class="table-responsive-box" style="max-height: 480px;">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th style="width: 35px; text-align: center;">#</th>
+                                    <th>DOANH NGHIỆP</th>
+                                    <th style="text-align: center; width: 75px;">SÀN</th>
+                                    <th style="text-align: right; width: 110px;">SỐ LƯỢNG CP</th>
+                                    <th style="text-align: right; width: 90px;">TỶ LỆ SỞ HỮU</th>
+                                    <th style="text-align: right; width: 115px; color: #ffd700;">GIÁ TRỊ (TỶ VNĐ)</th>
+                                    <th style="text-align: right; width: 80px;">TỶ TRỌNG</th>
+                                    <th style="text-align: center; width: 90px;">CẬP NHẬT</th>
+                                </tr>
+                            </thead>
+                            <tbody id="shTableBody"></tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- CỘT PHẢI: BIỂU ĐỒ PHÂN BỔ DANH MỤC -->
+                <div>
+                    <div style="background: #111726; border: 1px solid rgba(255, 255, 255, 0.08); border-radius: 10px; padding: 14px; box-shadow: 0 4px 16px rgba(0,0,0,0.3);">
+                        <div style="font-weight: 700; font-size: 12.5px; color: #ffffff; margin-bottom: 10px; display: flex; align-items: center; gap: 6px;">
+                            <span style="width: 6px; height: 6px; border-radius: 50%; background: #00e5ff; display: inline-block;"></span> Phân bổ tài sản danh mục
+                        </div>
+                        <div style="height: 200px; width: 100%; position: relative; margin-bottom: 10px;">
+                            <canvas id="chartShPortfolioDonut"></canvas>
+                        </div>
+                        <div id="shPortfolioBreakdownLegend" style="font-size: 11.5px; max-height: 200px; overflow-y: auto;"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+</body>
+</html>

@@ -1,0 +1,945 @@
+{
+  "pillars": {
+    "totalMarketCapTy": 10153555.029205196,
+    "stateCapital": {
+      "valueTy": 2642324.857764898,
+      "pct": 26.02
+    },
+    "foreignCapital": {
+      "valueTy": 1185884.8273460285,
+      "pct": 11.68
+    },
+    "insiderCapital": {
+      "valueTy": 2129608.699531074,
+      "pct": 20.97
+    },
+    "freeFloatCapital": {
+      "valueTy": 4195736.644563194,
+      "pct": 41.32
+    }
+  },
+  "sectors": [
+    {
+      "code": "8000",
+      "name": "Tài chính",
+      "icon": "🏭",
+      "stockCount": 222,
+      "totalCapTy": 6031847.2,
+      "statePct": 16.4,
+      "foreignPct": 11.4,
+      "insiderPct": 23.9,
+      "freeFloatPct": 48.3
+    },
+    {
+      "code": "2000",
+      "name": "Công nghiệp",
+      "icon": "🏭",
+      "stockCount": 590,
+      "totalCapTy": 878520.8,
+      "statePct": 44.6,
+      "foreignPct": 6.0,
+      "insiderPct": 16.3,
+      "freeFloatPct": 33.1
+    },
+    {
+      "code": "3000",
+      "name": "Hàng Tiêu dùng",
+      "icon": "🏭",
+      "stockCount": 265,
+      "totalCapTy": 853346.0,
+      "statePct": 13.0,
+      "foreignPct": 23.1,
+      "insiderPct": 22.4,
+      "freeFloatPct": 41.6
+    },
+    {
+      "code": "1000",
+      "name": "Nguyên vật liệu",
+      "icon": "🏭",
+      "stockCount": 184,
+      "totalCapTy": 595123.9,
+      "statePct": 37.8,
+      "foreignPct": 9.7,
+      "insiderPct": 18.3,
+      "freeFloatPct": 34.2
+    },
+    {
+      "code": "5000",
+      "name": "Dịch vụ Tiêu dùng",
+      "icon": "🏭",
+      "stockCount": 121,
+      "totalCapTy": 550879.7,
+      "statePct": 12.8,
+      "foreignPct": 18.0,
+      "insiderPct": 23.6,
+      "freeFloatPct": 45.5
+    },
+    {
+      "code": "7000",
+      "name": "Tiện ích Cộng đồng",
+      "icon": "🏭",
+      "stockCount": 164,
+      "totalCapTy": 489676.0,
+      "statePct": 71.4,
+      "foreignPct": 5.6,
+      "insiderPct": 8.6,
+      "freeFloatPct": 14.5
+    },
+    {
+      "code": "6000",
+      "name": "Viễn thông",
+      "icon": "🏭",
+      "stockCount": 4,
+      "totalCapTy": 314666.6,
+      "statePct": 91.6,
+      "foreignPct": 0.0,
+      "insiderPct": 3.3,
+      "freeFloatPct": 5.0
+    },
+    {
+      "code": "0001",
+      "name": "Dầu khí",
+      "icon": "🏭",
+      "stockCount": 23,
+      "totalCapTy": 238660.0,
+      "statePct": 80.2,
+      "foreignPct": 5.4,
+      "insiderPct": 5.7,
+      "freeFloatPct": 8.7
+    },
+    {
+      "code": "9000",
+      "name": "Công nghệ Thông tin",
+      "icon": "🏭",
+      "stockCount": 34,
+      "totalCapTy": 137687.1,
+      "statePct": 5.9,
+      "foreignPct": 25.8,
+      "insiderPct": 26.9,
+      "freeFloatPct": 41.4
+    },
+    {
+      "code": "4000",
+      "name": "Dược phẩm và Y tế",
+      "icon": "🏭",
+      "stockCount": 60,
+      "totalCapTy": 63147.8,
+      "statePct": 22.8,
+      "foreignPct": 26.6,
+      "insiderPct": 17.5,
+      "freeFloatPct": 33.2
+    }
+  ],
+  "sectorsL1": [
+    {
+      "code": "8000",
+      "name": "Tài chính",
+      "icon": "🏭",
+      "stockCount": 222,
+      "totalCapTy": 6031847.2,
+      "statePct": 16.4,
+      "foreignPct": 11.4,
+      "insiderPct": 23.9,
+      "freeFloatPct": 48.3
+    },
+    {
+      "code": "2000",
+      "name": "Công nghiệp",
+      "icon": "🏭",
+      "stockCount": 590,
+      "totalCapTy": 878520.8,
+      "statePct": 44.6,
+      "foreignPct": 6.0,
+      "insiderPct": 16.3,
+      "freeFloatPct": 33.1
+    },
+    {
+      "code": "3000",
+      "name": "Hàng Tiêu dùng",
+      "icon": "🏭",
+      "stockCount": 265,
+      "totalCapTy": 853346.0,
+      "statePct": 13.0,
+      "foreignPct": 23.1,
+      "insiderPct": 22.4,
+      "freeFloatPct": 41.6
+    },
+    {
+      "code": "1000",
+      "name": "Nguyên vật liệu",
+      "icon": "🏭",
+      "stockCount": 184,
+      "totalCapTy": 595123.9,
+      "statePct": 37.8,
+      "foreignPct": 9.7,
+      "insiderPct": 18.3,
+      "freeFloatPct": 34.2
+    },
+    {
+      "code": "5000",
+      "name": "Dịch vụ Tiêu dùng",
+      "icon": "🏭",
+      "stockCount": 121,
+      "totalCapTy": 550879.7,
+      "statePct": 12.8,
+      "foreignPct": 18.0,
+      "insiderPct": 23.6,
+      "freeFloatPct": 45.5
+    },
+    {
+      "code": "7000",
+      "name": "Tiện ích Cộng đồng",
+      "icon": "🏭",
+      "stockCount": 164,
+      "totalCapTy": 489676.0,
+      "statePct": 71.4,
+      "foreignPct": 5.6,
+      "insiderPct": 8.6,
+      "freeFloatPct": 14.5
+    },
+    {
+      "code": "6000",
+      "name": "Viễn thông",
+      "icon": "🏭",
+      "stockCount": 4,
+      "totalCapTy": 314666.6,
+      "statePct": 91.6,
+      "foreignPct": 0.0,
+      "insiderPct": 3.3,
+      "freeFloatPct": 5.0
+    },
+    {
+      "code": "0001",
+      "name": "Dầu khí",
+      "icon": "🏭",
+      "stockCount": 23,
+      "totalCapTy": 238660.0,
+      "statePct": 80.2,
+      "foreignPct": 5.4,
+      "insiderPct": 5.7,
+      "freeFloatPct": 8.7
+    },
+    {
+      "code": "9000",
+      "name": "Công nghệ Thông tin",
+      "icon": "🏭",
+      "stockCount": 34,
+      "totalCapTy": 137687.1,
+      "statePct": 5.9,
+      "foreignPct": 25.8,
+      "insiderPct": 26.9,
+      "freeFloatPct": 41.4
+    },
+    {
+      "code": "4000",
+      "name": "Dược phẩm và Y tế",
+      "icon": "🏭",
+      "stockCount": 60,
+      "totalCapTy": 63147.8,
+      "statePct": 22.8,
+      "foreignPct": 26.6,
+      "insiderPct": 17.5,
+      "freeFloatPct": 33.2
+    }
+  ],
+  "sectorsL2": [
+    {
+      "code": "8600",
+      "name": "Bất động sản",
+      "icon": "🏭",
+      "stockCount": 129,
+      "totalCapTy": 3021375.0,
+      "statePct": 2.2,
+      "foreignPct": 4.6,
+      "insiderPct": 29.4,
+      "freeFloatPct": 63.8
+    },
+    {
+      "code": "8300",
+      "name": "Ngân hàng",
+      "icon": "🏭",
+      "stockCount": 30,
+      "totalCapTy": 2417057.2,
+      "statePct": 35.7,
+      "foreignPct": 18.6,
+      "insiderPct": 17.0,
+      "freeFloatPct": 28.7
+    },
+    {
+      "code": "3500",
+      "name": "Thực phẩm và đồ uống",
+      "icon": "🏭",
+      "stockCount": 164,
+      "totalCapTy": 762505.3,
+      "statePct": 12.6,
+      "foreignPct": 23.6,
+      "insiderPct": 22.2,
+      "freeFloatPct": 41.5
+    },
+    {
+      "code": "2700",
+      "name": "Hàng & Dịch vụ Công nghiệp",
+      "icon": "🏭",
+      "stockCount": 251,
+      "totalCapTy": 607088.3,
+      "statePct": 56.3,
+      "foreignPct": 5.7,
+      "insiderPct": 13.0,
+      "freeFloatPct": 25.0
+    },
+    {
+      "code": "8700",
+      "name": "Dịch vụ tài chính",
+      "icon": "🏭",
+      "stockCount": 51,
+      "totalCapTy": 520099.0,
+      "statePct": 4.3,
+      "foreignPct": 15.0,
+      "insiderPct": 26.9,
+      "freeFloatPct": 53.8
+    },
+    {
+      "code": "7500",
+      "name": "Điện, nước & xăng dầu khí đốt",
+      "icon": "🏭",
+      "stockCount": 164,
+      "totalCapTy": 489676.0,
+      "statePct": 71.4,
+      "foreignPct": 5.6,
+      "insiderPct": 8.6,
+      "freeFloatPct": 14.5
+    },
+    {
+      "code": "5700",
+      "name": "Du lịch và Giải trí",
+      "icon": "🏭",
+      "stockCount": 40,
+      "totalCapTy": 347694.9,
+      "statePct": 18.5,
+      "foreignPct": 8.7,
+      "insiderPct": 23.6,
+      "freeFloatPct": 49.1
+    },
+    {
+      "code": "1700",
+      "name": "Tài nguyên Cơ bản",
+      "icon": "🏭",
+      "stockCount": 110,
+      "totalCapTy": 344471.7,
+      "statePct": 13.9,
+      "foreignPct": 12.4,
+      "insiderPct": 25.9,
+      "freeFloatPct": 47.8
+    },
+    {
+      "code": "6500",
+      "name": "Viễn thông",
+      "icon": "🏭",
+      "stockCount": 4,
+      "totalCapTy": 314666.6,
+      "statePct": 91.6,
+      "foreignPct": 0.0,
+      "insiderPct": 3.3,
+      "freeFloatPct": 5.0
+    },
+    {
+      "code": "2300",
+      "name": "Xây dựng và Vật liệu",
+      "icon": "🏭",
+      "stockCount": 339,
+      "totalCapTy": 271432.5,
+      "statePct": 18.5,
+      "foreignPct": 6.6,
+      "insiderPct": 23.7,
+      "freeFloatPct": 51.2
+    },
+    {
+      "code": "1300",
+      "name": "Hóa chất",
+      "icon": "🏭",
+      "stockCount": 74,
+      "totalCapTy": 250652.2,
+      "statePct": 70.5,
+      "foreignPct": 6.0,
+      "insiderPct": 7.9,
+      "freeFloatPct": 15.6
+    },
+    {
+      "code": "0500",
+      "name": "Dầu khí",
+      "icon": "🏭",
+      "stockCount": 23,
+      "totalCapTy": 238660.0,
+      "statePct": 80.2,
+      "foreignPct": 5.4,
+      "insiderPct": 5.7,
+      "freeFloatPct": 8.7
+    },
+    {
+      "code": "5300",
+      "name": "Bán lẻ",
+      "icon": "🏭",
+      "stockCount": 42,
+      "totalCapTy": 193163.3,
+      "statePct": 2.1,
+      "foreignPct": 35.6,
+      "insiderPct": 23.5,
+      "freeFloatPct": 38.7
+    },
+    {
+      "code": "9500",
+      "name": "Công nghệ Thông tin",
+      "icon": "🏭",
+      "stockCount": 34,
+      "totalCapTy": 137687.1,
+      "statePct": 5.9,
+      "foreignPct": 25.8,
+      "insiderPct": 26.9,
+      "freeFloatPct": 41.4
+    },
+    {
+      "code": "3700",
+      "name": "Hàng cá nhân & Gia dụng",
+      "icon": "🏭",
+      "stockCount": 88,
+      "totalCapTy": 80269.5,
+      "statePct": 14.8,
+      "foreignPct": 20.3,
+      "insiderPct": 23.4,
+      "freeFloatPct": 41.5
+    },
+    {
+      "code": "8500",
+      "name": "Bảo hiểm",
+      "icon": "🏭",
+      "stockCount": 12,
+      "totalCapTy": 73316.0,
+      "statePct": 56.4,
+      "foreignPct": 27.2,
+      "insiderPct": 6.1,
+      "freeFloatPct": 10.3
+    },
+    {
+      "code": "4500",
+      "name": "Y tế",
+      "icon": "🏭",
+      "stockCount": 60,
+      "totalCapTy": 63147.8,
+      "statePct": 22.8,
+      "foreignPct": 26.6,
+      "insiderPct": 17.5,
+      "freeFloatPct": 33.2
+    },
+    {
+      "code": "3300",
+      "name": "Ô tô và phụ tùng",
+      "icon": "🏭",
+      "stockCount": 13,
+      "totalCapTy": 10571.2,
+      "statePct": 26.3,
+      "foreignPct": 3.0,
+      "insiderPct": 24.8,
+      "freeFloatPct": 45.8
+    },
+    {
+      "code": "5500",
+      "name": "Truyền thông",
+      "icon": "🏭",
+      "stockCount": 39,
+      "totalCapTy": 10021.4,
+      "statePct": 21.1,
+      "foreignPct": 2.1,
+      "insiderPct": 26.2,
+      "freeFloatPct": 50.6
+    }
+  ],
+  "indexGroups": [
+    {
+      "id": "vn30",
+      "name": "Rổ VN30 (Bluechips Trụ Cột)",
+      "icon": "💎",
+      "stockCount": 30,
+      "totalCapTy": 5917793.4,
+      "statePct": 23.1,
+      "foreignPct": 14.2,
+      "insiderPct": 21.2,
+      "freeFloatPct": 41.4
+    },
+    {
+      "id": "midcap",
+      "name": "Rổ VNMID (Mid-Cap Vốn Hóa Vừa)",
+      "icon": "🚀",
+      "stockCount": 212,
+      "totalCapTy": 3615579.6,
+      "statePct": 31.3,
+      "foreignPct": 8.8,
+      "insiderPct": 20.1,
+      "freeFloatPct": 39.9
+    },
+    {
+      "id": "smallcap",
+      "name": "Rổ VNSML (Small-Cap Vốn Hóa Nhỏ)",
+      "icon": "⚡",
+      "stockCount": 1425,
+      "totalCapTy": 620182.0,
+      "statePct": 23.0,
+      "foreignPct": 4.9,
+      "insiderPct": 23.6,
+      "freeFloatPct": 48.6
+    }
+  ],
+  "institutions": [
+    {
+      "name": "Ngân hàng Nhà nước Việt Nam",
+      "slug": "",
+      "totalMarketValueTy": 741772.2,
+      "totalHoldings": 3,
+      "topStocks": [
+        "VCB (74.8%)",
+        "BID (81.0%)",
+        "CTG (64.5%)"
+      ]
+    },
+    {
+      "name": "CTCP Tập đoàn Đầu tư Việt Nam",
+      "slug": "",
+      "totalMarketValueTy": 594782.6,
+      "totalHoldings": 1,
+      "topStocks": [
+        "VIC (32.6%)"
+      ]
+    },
+    {
+      "name": "Tập đoàn Vingroup - CTCP",
+      "slug": "",
+      "totalMarketValueTy": 575892.4,
+      "totalHoldings": 5,
+      "topStocks": [
+        "VHM (71.6%)",
+        "VPL (81.7%)",
+        "VRE (18.4%)"
+      ]
+    },
+    {
+      "name": "Tập đoàn Công nghiệp - Năng lượng Quốc Gia Việt Nam",
+      "slug": "",
+      "totalMarketValueTy": 423783.6,
+      "totalHoldings": 16,
+      "topStocks": [
+        "GAS (95.8%)",
+        "BSR (92.1%)",
+        "POW (79.9%)"
+      ]
+    },
+    {
+      "name": "Ủy ban Quản lý vốn Nhà nước tại doanh nghiệp",
+      "slug": "",
+      "totalMarketValueTy": 394208.7,
+      "totalHoldings": 5,
+      "topStocks": [
+        "ACV (95.4%)",
+        "GVR (96.8%)",
+        "MVN (99.4%)"
+      ]
+    },
+    {
+      "name": "Tập đoàn Công nghiệp - Viễn Thông Quân đội",
+      "slug": "",
+      "totalMarketValueTy": 318288.1,
+      "totalHoldings": 5,
+      "topStocks": [
+        "VGI (99.0%)",
+        "MBB (19.0%)",
+        "VTP (61.2%)"
+      ]
+    },
+    {
+      "name": "CTCP Đầu tư và phát triển Đường sắt cao tốc Vinspeed",
+      "slug": "",
+      "totalMarketValueTy": 196874.1,
+      "totalHoldings": 1,
+      "topStocks": [
+        "VIC (10.8%)"
+      ]
+    },
+    {
+      "name": "Tổng công ty Đầu tư và Kinh doanh vốn nhà nước - Công ty TNHH",
+      "slug": "",
+      "totalMarketValueTy": 173657.8,
+      "totalHoldings": 38,
+      "topStocks": [
+        "VNM (36.0%)",
+        "HVN (47.1%)",
+        "SAB (36.0%)"
+      ]
+    },
+    {
+      "name": "CTCP Masan Consumer Holdings",
+      "slug": "",
+      "totalMarketValueTy": 127743.9,
+      "totalHoldings": 1,
+      "topStocks": [
+        "MCH (69.5%)"
+      ]
+    },
+    {
+      "name": "Ngân hàng TMCP Kỹ thương Việt Nam",
+      "slug": "",
+      "totalMarketValueTy": 90331.7,
+      "totalHoldings": 2,
+      "topStocks": [
+        "TCX (79.8%)",
+        "HVN (0.0%)"
+      ]
+    },
+    {
+      "name": "CTCP Năng lượng Vinenergo",
+      "slug": "",
+      "totalMarketValueTy": 78213.4,
+      "totalHoldings": 1,
+      "topStocks": [
+        "VIC (4.3%)"
+      ]
+    },
+    {
+      "name": "Mizuho Bank, Ltd",
+      "slug": "",
+      "totalMarketValueTy": 75327.3,
+      "totalHoldings": 1,
+      "topStocks": [
+        "VCB (15.0%)"
+      ]
+    },
+    {
+      "name": "Bộ Tài chính",
+      "slug": "",
+      "totalMarketValueTy": 58898.6,
+      "totalHoldings": 2,
+      "topStocks": [
+        "BVH (65.0%)",
+        "HVN (39.3%)"
+      ]
+    },
+    {
+      "name": "CTCP Tập đoàn GELEX",
+      "slug": "",
+      "totalMarketValueTy": 53321.6,
+      "totalHoldings": 5,
+      "topStocks": [
+        "GEE (76.0%)",
+        "GEL (70.2%)",
+        "EIB (10.0%)"
+      ]
+    },
+    {
+      "name": "MUFG Bank, Ltd",
+      "slug": "",
+      "totalMarketValueTy": 48883.3,
+      "totalHoldings": 1,
+      "topStocks": [
+        "CTG (19.7%)"
+      ]
+    }
+  ],
+  "dynasties": [
+    {
+      "name": "Gia tộc Phạm Nhật Vượng (Vingroup)",
+      "icon": "👑",
+      "totalMarketValueTy": 890963.3,
+      "keySymbols": [
+        "VPL",
+        "LPB",
+        "VIC",
+        "VEF"
+      ],
+      "membersCount": 6
+    },
+    {
+      "name": "Gia tộc Trần Đình Long (Hòa Phát)",
+      "icon": "👑",
+      "totalMarketValueTy": 65928.8,
+      "keySymbols": [
+        "PWA",
+        "HPG",
+        "TPB",
+        "NSC"
+      ],
+      "membersCount": 4
+    },
+    {
+      "name": "Gia tộc Đỗ Anh Tuấn (Sunshine Group)",
+      "icon": "👑",
+      "totalMarketValueTy": 46091.1,
+      "keySymbols": [
+        "KLB",
+        "KSF",
+        "SCG",
+        "SSH"
+      ],
+      "membersCount": 3
+    },
+    {
+      "name": "Liên minh Hồ Hùng Anh & Nguyễn Đăng Quang",
+      "icon": "👑",
+      "totalMarketValueTy": 39187.2,
+      "keySymbols": [
+        "CHC",
+        "NET",
+        "ELC",
+        "TV4"
+      ],
+      "membersCount": 6
+    },
+    {
+      "name": "Gia tộc Ngô Chí Dũng (VPBank)",
+      "icon": "👑",
+      "totalMarketValueTy": 26885.2,
+      "keySymbols": [
+        "VTR",
+        "VPB"
+      ],
+      "membersCount": 3
+    },
+    {
+      "name": "Gia tộc Nguyễn Thị Phương Thảo (Sovico)",
+      "icon": "👑",
+      "totalMarketValueTy": 12471.7,
+      "keySymbols": [
+        "HDB",
+        "VDN",
+        "NNC",
+        "ACB"
+      ],
+      "membersCount": 4
+    },
+    {
+      "name": "Gia tộc Trương Gia Bình & Sáng Lập FPT",
+      "icon": "👑",
+      "totalMarketValueTy": 11610.2,
+      "keySymbols": [
+        "PLE",
+        "SAB",
+        "FTS",
+        "DLM"
+      ],
+      "membersCount": 5
+    },
+    {
+      "name": "Gia tộc Nguyễn Văn Tuấn (Gelex Group)",
+      "icon": "👑",
+      "totalMarketValueTy": 9934.2,
+      "keySymbols": [
+        "VTZ",
+        "PPC",
+        "CIA",
+        "LMH"
+      ],
+      "membersCount": 4
+    }
+  ],
+  "pyramid": [
+    {
+      "label": "👑 Siêu Đại Gia (> 10.000 Tỷ)",
+      "badge": "> 10.000 Tỷ",
+      "count": 72,
+      "totalVal": 5513517.8,
+      "pct": 74.8
+    },
+    {
+      "label": "🐋 Cá Mập Lớn (1.000 - 10.000 Tỷ)",
+      "badge": "1.000 - 10.000 Tỷ",
+      "count": 451,
+      "totalVal": 1257239.3,
+      "pct": 17.1
+    },
+    {
+      "label": "🐬 Tay To (100 - 1.000 Tỷ)",
+      "badge": "100 - 1.000 Tỷ",
+      "count": 1435,
+      "totalVal": 469641.5,
+      "pct": 6.4
+    },
+    {
+      "label": "🐟 Triệu Đô (25 - 100 Tỷ)",
+      "badge": "25 - 100 Tỷ",
+      "count": 1725,
+      "totalVal": 88310.3,
+      "pct": 1.2
+    },
+    {
+      "label": "🦐 Nhỏ Lẻ (< 25 Tỷ)",
+      "badge": "< 25 Tỷ",
+      "count": 16471,
+      "totalVal": 43999.3,
+      "pct": 0.6
+    }
+  ],
+  "hhi": {
+    "score": 343.7,
+    "assessment": "Mức độ tập trung cao (Cực kỳ cô đặc ở Top 1%)"
+  },
+  "topStateStocks": [
+    {
+      "symbol": "DNH",
+      "name": "CTCP Thuy dien Da Nhim - Ham Thuan - Da Mi",
+      "exchange": "UPCOM",
+      "mcapTy": 21542.4,
+      "govRatio": 99.93,
+      "stateHolderName": "Nhà nước / SCIC"
+    },
+    {
+      "symbol": "SJG",
+      "name": "CTCP Tong cong ty Song Da",
+      "exchange": "UPCOM",
+      "mcapTy": 8990.7,
+      "govRatio": 99.79,
+      "stateHolderName": "Nhà nước / SCIC"
+    },
+    {
+      "symbol": "MIE",
+      "name": "CTCP Tong cty May va Thiet bi Cong nghiep",
+      "exchange": "UPCOM",
+      "mcapTy": 894.5,
+      "govRatio": 99.57,
+      "stateHolderName": "Nhà nước / SCIC"
+    },
+    {
+      "symbol": "SNZ",
+      "name": "Tổng Công ty Cổ phần Phát triển Khu công nghiệp",
+      "exchange": "UPCOM",
+      "mcapTy": 9224.2,
+      "govRatio": 99.54,
+      "stateHolderName": "Nhà nước / SCIC"
+    },
+    {
+      "symbol": "MVN",
+      "name": "CTCP Tong cty Hang hai Viet Nam",
+      "exchange": "UPCOM",
+      "mcapTy": 84675.8,
+      "govRatio": 99.47,
+      "stateHolderName": "Nhà nước / SCIC"
+    },
+    {
+      "symbol": "DTK",
+      "name": "CTCP - Tong cong ty Dien luc TKV",
+      "exchange": "HNX",
+      "mcapTy": 7442.2,
+      "govRatio": 99.27,
+      "stateHolderName": "Nhà nước / SCIC"
+    },
+    {
+      "symbol": "PGV",
+      "name": "Tổng Công ty Phát điện 3 - Công ty Cổ phần",
+      "exchange": "HOSE",
+      "mcapTy": 25662.3,
+      "govRatio": 99.19,
+      "stateHolderName": "Nhà nước / SCIC"
+    },
+    {
+      "symbol": "CCT",
+      "name": "CTCP CANG CAN THO",
+      "exchange": "UPCOM",
+      "mcapTy": 253.5,
+      "govRatio": 99.05,
+      "stateHolderName": "Nhà nước / SCIC"
+    },
+    {
+      "symbol": "VGI",
+      "name": "CTCP Dau tu quoc te Viettel",
+      "exchange": "UPCOM",
+      "mcapTy": 267219.2,
+      "govRatio": 99.03,
+      "stateHolderName": "Nhà nước / SCIC"
+    },
+    {
+      "symbol": "DRG",
+      "name": "CTCP Cao su Đắk Lắk",
+      "exchange": "UPCOM",
+      "mcapTy": 1308.7,
+      "govRatio": 98.94,
+      "stateHolderName": "Nhà nước / SCIC"
+    }
+  ],
+  "topForeignStocks": [
+    {
+      "symbol": "IFS",
+      "name": "CTCP Thuc pham Quoc te",
+      "exchange": "UPCOM",
+      "mcapTy": 1525.0,
+      "forRatio": 97.58,
+      "icbName": "Thực phẩm và đồ uống"
+    },
+    {
+      "symbol": "SVI",
+      "name": "Công ty Cổ phần Bao bì Biên Hòa",
+      "exchange": "HOSE",
+      "mcapTy": 477.3,
+      "forRatio": 94.38,
+      "icbName": "Hàng & Dịch vụ Công nghiệp"
+    },
+    {
+      "symbol": "DCV",
+      "name": "Cổ phiếu CTCP Quản lý quỹ Đầu tư Dragon Capital Việt Nam",
+      "exchange": "UPCOM",
+      "mcapTy": 4025.0,
+      "forRatio": 94.06,
+      "icbName": "Dịch vụ tài chính"
+    },
+    {
+      "symbol": "TTP",
+      "name": "Công ty Cổ phần Bao bì Tân Tiến",
+      "exchange": "UPCOM",
+      "mcapTy": 622.4,
+      "forRatio": 88.21,
+      "icbName": "Hàng & Dịch vụ Công nghiệp"
+    },
+    {
+      "symbol": "PHS",
+      "name": "PHS - CTCP Chứng khoán Phú Hưng",
+      "exchange": "UPCOM",
+      "mcapTy": 927.3,
+      "forRatio": 85.85,
+      "icbName": "Dịch vụ tài chính"
+    },
+    {
+      "symbol": "IVS",
+      "name": "CTCP Chứng khoán Goutai Junan (Việt Nam)",
+      "exchange": "HNX",
+      "mcapTy": 713.5,
+      "forRatio": 85.76,
+      "icbName": "Dịch vụ tài chính"
+    },
+    {
+      "symbol": "BMP",
+      "name": "Công ty Cổ phần Nhựa Bình Minh",
+      "exchange": "HOSE",
+      "mcapTy": 11787.4,
+      "forRatio": 82.48,
+      "icbName": "Hóa chất"
+    },
+    {
+      "symbol": "AIC",
+      "name": "Công ty cổ phần Tập đoàn Bảo hiểm DBV",
+      "exchange": "UPCOM",
+      "mcapTy": 800.0,
+      "forRatio": 75.07,
+      "icbName": "Bảo hiểm"
+    },
+    {
+      "symbol": "BHI",
+      "name": "Tổng Công ty cổ phần Bảo hiểm Sài Gòn - Hà Nội",
+      "exchange": "UPCOM",
+      "mcapTy": 909.9,
+      "forRatio": 75.02,
+      "icbName": "Bảo hiểm"
+    },
+    {
+      "symbol": "IMP",
+      "name": "Công ty Cổ phần Dược phẩm Imexpharm",
+      "exchange": "HOSE",
+      "mcapTy": 5992.2,
+      "forRatio": 72.66,
+      "icbName": "Y tế"
+    }
+  ]
+}

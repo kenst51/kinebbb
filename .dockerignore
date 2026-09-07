@@ -1,0 +1,17 @@
+venv/
+.venv/
+__pycache__/
+*.pyc
+.git/
+.github/
+.vscode/
+.idea/
+scratch/
+*.log
+*.pdf
+Bulkowski_Extraction 1/
+*.png
+cache/*.pkl
+cache/raw_stocks_14y.zip
+temp_check_*.js
+test_*.py

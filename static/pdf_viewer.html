@@ -1,0 +1,285 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Xem báo cáo</title>
+    <!-- Thư viện PDF.js cốt lõi -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf_viewer.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        body, html {
+            margin: 0;
+            padding: 0;
+            background-color: #525659;
+            text-align: center;
+            overflow-y: auto;
+        }
+        #pdf-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 20px 0;
+            margin-top: 40px; /* Space for toolbar */
+        }
+        
+        .page-wrapper {
+            position: relative;
+            margin-bottom: 10px;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.5);
+            background-color: white;
+            max-width: 95vw;
+        }
+        
+        canvas {
+            display: block;
+            width: 100%;
+            height: 100%;
+        }
+        
+        .textLayer {
+            position: absolute;
+            left: 0;
+            top: 0;
+            right: 0;
+            bottom: 0;
+            overflow: hidden;
+            opacity: 0.25;
+            line-height: 1.0;
+        }
+        
+        .textLayer > span {
+            color: transparent;
+            position: absolute;
+            white-space: pre;
+            cursor: text;
+            transform-origin: 0% 0%;
+        }
+
+        #loading-container {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            color: white;
+            font-family: Arial, sans-serif;
+            text-align: center;
+        }
+        .loader {
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #3498db;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 15px auto;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        #toolbar {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            background-color: #323639;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.3);
+            height: 50px;
+            display: flex;
+            align-items: center;
+            justify-content: flex-end;
+            padding: 0 20px;
+            z-index: 1000;
+        }
+
+        .btn-download {
+            background-color: #007bff;
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-family: Arial, sans-serif;
+            font-size: 14px;
+            font-weight: bold;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            transition: background 0.2s;
+            display: none; /* Hide until loaded */
+        }
+
+        .btn-download:hover {
+            background-color: #0056b3;
+        }
+    </style>
+</head>
+<body>
+    <div id="toolbar">
+        <button id="download-btn" class="btn-download" onclick="downloadPDF()">
+            <i class="fas fa-download"></i> Tải báo cáo
+        </button>
+    </div>
+
+    <div id="loading-container">
+        <div class="loader"></div>
+        <h2>Đang tải báo cáo...</h2>
+    </div>
+    <div id="pdf-container"></div>
+    
+    <script>
+        pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+        
+        const params = new URLSearchParams(window.location.search);
+        const token = params.get('token');
+        const title = params.get('title') || 'Báo cáo phân tích';
+        let pdfBytesData = null;
+        
+        if (title) document.title = title;
+        
+        async function downloadPDF() {
+            if (!pdfBytesData) {
+                alert('Dữ liệu chưa tải xong, vui lòng đợi giây lát!');
+                return;
+            }
+            
+            const kbSize = Math.round(pdfBytesData.length / 1024);
+            const blob = new Blob([pdfBytesData], { type: 'application/pdf' });
+            
+            try {
+                if (window.showSaveFilePicker) {
+                    const handle = await window.showSaveFilePicker({
+                        suggestedName: document.title + '.pdf',
+                        types: [{
+                            description: 'PDF Document',
+                            accept: {'application/pdf': ['.pdf']},
+                        }],
+                    });
+                    const writable = await handle.createWritable();
+                    // Ghi dạng Blob để đảm bảo tính toàn vẹn 100%
+                    await writable.write(blob);
+                    await writable.close();
+                    
+                } else {
+                    const url = URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = document.title + '.pdf';
+                    document.body.appendChild(a);
+                    a.click();
+                    document.body.removeChild(a);
+                    URL.revokeObjectURL(url);
+                    
+                }
+            } catch (err) {
+                if (err.name !== 'AbortError') {
+                    alert('Lỗi khi tải file: ' + err.message);
+                }
+            }
+        }
+
+        if (token) {
+            const pdfUrl = `/api/stream_pdf?token=${encodeURIComponent(token)}&title=${encodeURIComponent(title)}&b64=1`;
+            
+            fetch(pdfUrl)
+            .then(response => {
+                if (!response.ok) throw new Error('Không tìm thấy báo cáo');
+                return response.text();
+            })
+            .then(b64Text => {
+                const binaryString = window.atob(b64Text);
+                const len = binaryString.length;
+                const bytes = new Uint8Array(len);
+                for (let i = 0; i < len; i++) {
+                    bytes[i] = binaryString.charCodeAt(i);
+                }
+                
+                // LƯU Ý QUAN TRỌNG: 
+                // PDF.js worker sẽ 'nuốt' (transfer) mất ArrayBuffer của mảng truyền vào, làm mảng đó biến thành 0 byte.
+                // Do đó, ta phải lưu lại mảng gốc, và chỉ truyền BẢN SAO cho PDF.js.
+                pdfBytesData = bytes; 
+                document.getElementById('download-btn').style.display = 'flex'; 
+                
+                const loadingTask = pdfjsLib.getDocument({ data: new Uint8Array(bytes) });
+                return loadingTask.promise;
+            })
+            .then(function(pdf) {
+                document.getElementById('loading-container').style.display = 'none';
+                const container = document.getElementById('pdf-container');
+                
+                for (let pageNum = 1; pageNum <= pdf.numPages; pageNum++) {
+                    pdf.getPage(pageNum).then(function(page) {
+                        const scale = 1.5;
+                        const viewport = page.getViewport({scale: scale});
+                        
+                        // Wrapper
+                        const pageWrapper = document.createElement('div');
+                        pageWrapper.className = 'page-wrapper';
+                        pageWrapper.style.width = viewport.width + 'px';
+                        pageWrapper.style.height = viewport.height + 'px';
+                        pageWrapper.setAttribute('data-page', pageNum);
+                        
+                        // Canvas
+                        const canvas = document.createElement('canvas');
+                        const context = canvas.getContext('2d');
+                        canvas.height = viewport.height;
+                        canvas.width = viewport.width;
+                        pageWrapper.appendChild(canvas);
+                        
+                        // Text Layer
+                        const textLayerDiv = document.createElement('div');
+                        textLayerDiv.className = 'textLayer';
+                        textLayerDiv.style.width = viewport.width + 'px';
+                        textLayerDiv.style.height = viewport.height + 'px';
+                        textLayerDiv.style.setProperty('--scale-factor', viewport.scale);
+                        pageWrapper.appendChild(textLayerDiv);
+                        
+                        // Sort elements
+                        let inserted = false;
+                        const children = container.children;
+                        for (let i = 0; i < children.length; i++) {
+                            if (parseInt(children[i].getAttribute('data-page')) > pageNum) {
+                                container.insertBefore(pageWrapper, children[i]);
+                                inserted = true;
+                                break;
+                            }
+                        }
+                        if (!inserted) {
+                            container.appendChild(pageWrapper);
+                        }
+                        
+                        // Render graphics
+                        const renderContext = {
+                            canvasContext: context,
+                            viewport: viewport
+                        };
+                        
+                        page.render(renderContext).promise.then(() => {
+                            // Render text
+                            return page.getTextContent();
+                        }).then((textContent) => {
+                            pdfjsLib.renderTextLayer({
+                                textContentSource: textContent,
+                                container: textLayerDiv,
+                                viewport: viewport,
+                                textDivs: []
+                            });
+                        }).catch(err => {
+                            console.warn("Lỗi render text layer:", err);
+                        });
+                    });
+                }
+            })
+            .catch(function(error) {
+                document.getElementById('loading-container').innerHTML = '<h2 style="color: #ff6b6b;">' + error.message + '</h2>';
+                console.error('Lỗi PDF.js:', error);
+            });
+        } else {
+            document.getElementById('loading-container').innerHTML = '<h2 style="color: #ff6b6b;">Lỗi: Không tìm thấy liên kết.</h2>';
+        }
+    </script>
+</body>
+</html>

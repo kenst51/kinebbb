@@ -1,0 +1,14 @@
+version: '3.8'
+
+services:
+  vnstock-quant-pro:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: vnstock_web
+    ports:
+      - "10000:10000"
+    environment:
+      - PYTHONUNBUFFERED=1
+      - PORT=10000
+    restart: unless-stopped

@@ -1,0 +1,971 @@
+{
+  "total": 160,
+  "level1": [
+    {
+      "code": "2000",
+      "name": "Công nghiệp",
+      "level": 1,
+      "stockCount": 590
+    },
+    {
+      "code": "3000",
+      "name": "Hàng Tiêu dùng",
+      "level": 1,
+      "stockCount": 265
+    },
+    {
+      "code": "8000",
+      "name": "Tài chính",
+      "level": 1,
+      "stockCount": 236
+    },
+    {
+      "code": "1000",
+      "name": "Nguyên vật liệu",
+      "level": 1,
+      "stockCount": 184
+    },
+    {
+      "code": "7000",
+      "name": "Tiện ích Cộng đồng",
+      "level": 1,
+      "stockCount": 164
+    },
+    {
+      "code": "5000",
+      "name": "Dịch vụ Tiêu dùng",
+      "level": 1,
+      "stockCount": 121
+    },
+    {
+      "code": "4000",
+      "name": "Dược phẩm và Y tế",
+      "level": 1,
+      "stockCount": 60
+    },
+    {
+      "code": "9000",
+      "name": "Công nghệ Thông tin",
+      "level": 1,
+      "stockCount": 34
+    },
+    {
+      "code": "0001",
+      "name": "Dầu khí",
+      "level": 1,
+      "stockCount": 23
+    },
+    {
+      "code": "6000",
+      "name": "Viễn thông",
+      "level": 1,
+      "stockCount": 4
+    }
+  ],
+  "level2": [
+    {
+      "code": "2300",
+      "name": "Xây dựng và Vật liệu",
+      "level": 2,
+      "stockCount": 339
+    },
+    {
+      "code": "2700",
+      "name": "Hàng & Dịch vụ Công nghiệp",
+      "level": 2,
+      "stockCount": 251
+    },
+    {
+      "code": "3500",
+      "name": "Thực phẩm và đồ uống",
+      "level": 2,
+      "stockCount": 164
+    },
+    {
+      "code": "7500",
+      "name": "Điện, nước & xăng dầu khí đốt",
+      "level": 2,
+      "stockCount": 164
+    },
+    {
+      "code": "8600",
+      "name": "Bất động sản",
+      "level": 2,
+      "stockCount": 129
+    },
+    {
+      "code": "1700",
+      "name": "Tài nguyên Cơ bản",
+      "level": 2,
+      "stockCount": 110
+    },
+    {
+      "code": "3700",
+      "name": "Hàng cá nhân & Gia dụng",
+      "level": 2,
+      "stockCount": 88
+    },
+    {
+      "code": "1300",
+      "name": "Hóa chất",
+      "level": 2,
+      "stockCount": 74
+    },
+    {
+      "code": "4500",
+      "name": "Y tế",
+      "level": 2,
+      "stockCount": 60
+    },
+    {
+      "code": "8700",
+      "name": "Dịch vụ tài chính",
+      "level": 2,
+      "stockCount": 51
+    },
+    {
+      "code": "5300",
+      "name": "Bán lẻ",
+      "level": 2,
+      "stockCount": 42
+    },
+    {
+      "code": "5700",
+      "name": "Du lịch và Giải trí",
+      "level": 2,
+      "stockCount": 40
+    },
+    {
+      "code": "5500",
+      "name": "Truyền thông",
+      "level": 2,
+      "stockCount": 39
+    },
+    {
+      "code": "9500",
+      "name": "Công nghệ Thông tin",
+      "level": 2,
+      "stockCount": 34
+    },
+    {
+      "code": "8300",
+      "name": "Ngân hàng",
+      "level": 2,
+      "stockCount": 30
+    },
+    {
+      "code": "0500",
+      "name": "Dầu khí",
+      "level": 2,
+      "stockCount": 23
+    },
+    {
+      "code": "8900",
+      "name": "Đầu tư chứng khoán/phi chứng khoán",
+      "level": 2,
+      "stockCount": 14
+    },
+    {
+      "code": "3300",
+      "name": "Ô tô và phụ tùng",
+      "level": 2,
+      "stockCount": 13
+    },
+    {
+      "code": "8500",
+      "name": "Bảo hiểm",
+      "level": 2,
+      "stockCount": 12
+    },
+    {
+      "code": "6500",
+      "name": "Viễn thông",
+      "level": 2,
+      "stockCount": 4
+    }
+  ],
+  "level3": [
+    {
+      "code": "2350",
+      "name": "Xây dựng và Vật liệu",
+      "level": 3,
+      "stockCount": 339
+    },
+    {
+      "code": "2770",
+      "name": "Vận tải",
+      "level": 3,
+      "stockCount": 134
+    },
+    {
+      "code": "3570",
+      "name": "Sản xuất thực phẩm",
+      "level": 3,
+      "stockCount": 129
+    },
+    {
+      "code": "8630",
+      "name": "Bất động sản",
+      "level": 3,
+      "stockCount": 129
+    },
+    {
+      "code": "7570",
+      "name": "Nước & Khí đốt",
+      "level": 3,
+      "stockCount": 110
+    },
+    {
+      "code": "1350",
+      "name": "Hóa chất",
+      "level": 3,
+      "stockCount": 74
+    },
+    {
+      "code": "3760",
+      "name": "Hàng cá nhân",
+      "level": 3,
+      "stockCount": 54
+    },
+    {
+      "code": "7530",
+      "name": "Sản xuất & Phân phối Điện",
+      "level": 3,
+      "stockCount": 54
+    },
+    {
+      "code": "4570",
+      "name": "Dược phẩm",
+      "level": 3,
+      "stockCount": 51
+    },
+    {
+      "code": "1770",
+      "name": "Khai khoáng",
+      "level": 3,
+      "stockCount": 50
+    },
+    {
+      "code": "1750",
+      "name": "Kim loại",
+      "level": 3,
+      "stockCount": 42
+    },
+    {
+      "code": "8780",
+      "name": "Công ty Chứng khoán",
+      "level": 3,
+      "stockCount": 42
+    },
+    {
+      "code": "2790",
+      "name": "Tư vấn & Hỗ trợ Kinh doanh",
+      "level": 3,
+      "stockCount": 41
+    },
+    {
+      "code": "5750",
+      "name": "Du lịch & Giải trí",
+      "level": 3,
+      "stockCount": 40
+    },
+    {
+      "code": "5550",
+      "name": "Truyền thông",
+      "level": 3,
+      "stockCount": 39
+    },
+    {
+      "code": "5370",
+      "name": "Bán lẻ",
+      "level": 3,
+      "stockCount": 36
+    },
+    {
+      "code": "3530",
+      "name": "Bia và đồ uống",
+      "level": 3,
+      "stockCount": 35
+    },
+    {
+      "code": "8350",
+      "name": "Ngân hàng",
+      "level": 3,
+      "stockCount": 30
+    },
+    {
+      "code": "2750",
+      "name": "Công nghiệp nặng",
+      "level": 3,
+      "stockCount": 29
+    },
+    {
+      "code": "3720",
+      "name": "Hàng gia dụng",
+      "level": 3,
+      "stockCount": 28
+    },
+    {
+      "code": "2720",
+      "name": "Hàng công nghiệp",
+      "level": 3,
+      "stockCount": 24
+    },
+    {
+      "code": "2730",
+      "name": "Điện tử & Thiết bị điện",
+      "level": 3,
+      "stockCount": 23
+    },
+    {
+      "code": "9570",
+      "name": "Thiết bị và Phần cứng",
+      "level": 3,
+      "stockCount": 21
+    },
+    {
+      "code": "1730",
+      "name": "Lâm nghiệp và Giấy",
+      "level": 3,
+      "stockCount": 17
+    },
+    {
+      "code": "3350",
+      "name": "Ô tô và phụ tùng",
+      "level": 3,
+      "stockCount": 13
+    },
+    {
+      "code": "9530",
+      "name": "Phần mềm & Dịch vụ Máy tính",
+      "level": 3,
+      "stockCount": 13
+    },
+    {
+      "code": "8530",
+      "name": "Bảo hiểm phi nhân thọ",
+      "level": 3,
+      "stockCount": 11
+    },
+    {
+      "code": "0570",
+      "name": "Thiết bị, Dịch vụ và Phân phối Dầu khí",
+      "level": 3,
+      "stockCount": 9
+    },
+    {
+      "code": "4530",
+      "name": "Thiết bị và Dịch vụ Y tế",
+      "level": 3,
+      "stockCount": 9
+    },
+    {
+      "code": "8770",
+      "name": "Dịch vụ tài chính",
+      "level": 3,
+      "stockCount": 9
+    },
+    {
+      "code": "8990",
+      "name": "Quỹ mở",
+      "level": 3,
+      "stockCount": 9
+    },
+    {
+      "code": "0530",
+      "name": "Sản xuất Dầu khí",
+      "level": 3,
+      "stockCount": 7
+    },
+    {
+      "code": "0580",
+      "name": "Năng lượng thay thế",
+      "level": 3,
+      "stockCount": 7
+    },
+    {
+      "code": "5330",
+      "name": "Phân phối thực phẩm & dược phẩm",
+      "level": 3,
+      "stockCount": 6
+    },
+    {
+      "code": "8980",
+      "name": "Quỹ đóng",
+      "level": 3,
+      "stockCount": 4
+    },
+    {
+      "code": "3740",
+      "name": "Hàng hóa giải trí",
+      "level": 3,
+      "stockCount": 3
+    },
+    {
+      "code": "3780",
+      "name": "Thuốc lá",
+      "level": 3,
+      "stockCount": 3
+    },
+    {
+      "code": "6530",
+      "name": "Viễn thông cố định",
+      "level": 3,
+      "stockCount": 3
+    },
+    {
+      "code": "6570",
+      "name": "Viễn thông di động",
+      "level": 3,
+      "stockCount": 1
+    },
+    {
+      "code": "8570",
+      "name": "Bảo hiểm nhân thọ",
+      "level": 3,
+      "stockCount": 1
+    }
+  ],
+  "level4": [
+    {
+      "code": "2357",
+      "name": "Xây dựng",
+      "level": 4,
+      "stockCount": 234
+    },
+    {
+      "code": "2353",
+      "name": "Vật liệu xây dựng & Nội thất",
+      "level": 4,
+      "stockCount": 105
+    },
+    {
+      "code": "8633",
+      "name": "Bất động sản",
+      "level": 4,
+      "stockCount": 94
+    },
+    {
+      "code": "2777",
+      "name": "Kho bãi, hậu cần và bảo dưỡng",
+      "level": 4,
+      "stockCount": 85
+    },
+    {
+      "code": "3577",
+      "name": "Thực phẩm",
+      "level": 4,
+      "stockCount": 77
+    },
+    {
+      "code": "7577",
+      "name": "Nước",
+      "level": 4,
+      "stockCount": 61
+    },
+    {
+      "code": "7535",
+      "name": "Sản xuất & Phân phối Điện",
+      "level": 4,
+      "stockCount": 54
+    },
+    {
+      "code": "3573",
+      "name": "Nuôi trồng nông & hải sản",
+      "level": 4,
+      "stockCount": 52
+    },
+    {
+      "code": "1353",
+      "name": "Nhựa, cao su & sợi",
+      "level": 4,
+      "stockCount": 49
+    },
+    {
+      "code": "4577",
+      "name": "Dược phẩm",
+      "level": 4,
+      "stockCount": 49
+    },
+    {
+      "code": "3763",
+      "name": "Hàng May mặc",
+      "level": 4,
+      "stockCount": 46
+    },
+    {
+      "code": "8781",
+      "name": "Công ty Chứng khoán",
+      "level": 4,
+      "stockCount": 42
+    },
+    {
+      "code": "2773",
+      "name": "Vận tải Thủy",
+      "level": 4,
+      "stockCount": 40
+    },
+    {
+      "code": "8637",
+      "name": "Tư Vấn, Định giá, Môi giới Bất động sản",
+      "level": 4,
+      "stockCount": 35
+    },
+    {
+      "code": "1775",
+      "name": "Khai khoáng",
+      "level": 4,
+      "stockCount": 34
+    },
+    {
+      "code": "5557",
+      "name": "Sách, ấn bản & sản phẩm văn hóa",
+      "level": 4,
+      "stockCount": 33
+    },
+    {
+      "code": "7575",
+      "name": "Tiện ích khác",
+      "level": 4,
+      "stockCount": 33
+    },
+    {
+      "code": "2791",
+      "name": "Tư vấn & Hỗ trợ KD",
+      "level": 4,
+      "stockCount": 31
+    },
+    {
+      "code": "5373",
+      "name": "Bán lẻ phức hợp",
+      "level": 4,
+      "stockCount": 31
+    },
+    {
+      "code": "8355",
+      "name": "Ngân hàng",
+      "level": 4,
+      "stockCount": 30
+    },
+    {
+      "code": "1757",
+      "name": "Thép và sản phẩm thép",
+      "level": 4,
+      "stockCount": 27
+    },
+    {
+      "code": "2757",
+      "name": "Máy công nghiệp",
+      "level": 4,
+      "stockCount": 27
+    },
+    {
+      "code": "1357",
+      "name": "Sản phẩm hóa dầu, Nông dược & Hóa chất khác",
+      "level": 4,
+      "stockCount": 25
+    },
+    {
+      "code": "3533",
+      "name": "Sản xuất bia",
+      "level": 4,
+      "stockCount": 25
+    },
+    {
+      "code": "2723",
+      "name": "Containers & Đóng gói",
+      "level": 4,
+      "stockCount": 21
+    },
+    {
+      "code": "2733",
+      "name": "Hàng điện & điện tử",
+      "level": 4,
+      "stockCount": 20
+    },
+    {
+      "code": "5759",
+      "name": "Vận tải hành khách & Du lịch",
+      "level": 4,
+      "stockCount": 20
+    },
+    {
+      "code": "7573",
+      "name": "Phân phối xăng dầu & khí đốt",
+      "level": 4,
+      "stockCount": 16
+    },
+    {
+      "code": "1771",
+      "name": "Khai thác Than",
+      "level": 4,
+      "stockCount": 15
+    },
+    {
+      "code": "9578",
+      "name": "Thiết bị viễn thông",
+      "level": 4,
+      "stockCount": 15
+    },
+    {
+      "code": "1755",
+      "name": "Kim Loại màu",
+      "level": 4,
+      "stockCount": 14
+    },
+    {
+      "code": "3722",
+      "name": "Đồ gia dụng lâu bền",
+      "level": 4,
+      "stockCount": 11
+    },
+    {
+      "code": "1733",
+      "name": "Lâm sản và Chế biến gỗ",
+      "level": 4,
+      "stockCount": 10
+    },
+    {
+      "code": "3724",
+      "name": "Đồ gia dụng một lần",
+      "level": 4,
+      "stockCount": 10
+    },
+    {
+      "code": "5755",
+      "name": "Dịch vụ giải trí",
+      "level": 4,
+      "stockCount": 10
+    },
+    {
+      "code": "9537",
+      "name": "Phần mềm",
+      "level": 4,
+      "stockCount": 10
+    },
+    {
+      "code": "3353",
+      "name": "Sản xuất ô tô",
+      "level": 4,
+      "stockCount": 9
+    },
+    {
+      "code": "8532",
+      "name": "Bảo hiểm phức hợp",
+      "level": 4,
+      "stockCount": 9
+    },
+    {
+      "code": "8995",
+      "name": "Quỹ mở",
+      "level": 4,
+      "stockCount": 9
+    },
+    {
+      "code": "0573",
+      "name": "Thiết bị và Dịch vụ Dầu khí",
+      "level": 4,
+      "stockCount": 8
+    },
+    {
+      "code": "0533",
+      "name": "Sản xuất và Khai thác dầu khí",
+      "level": 4,
+      "stockCount": 7
+    },
+    {
+      "code": "1737",
+      "name": "Sản xuất giấy",
+      "level": 4,
+      "stockCount": 7
+    },
+    {
+      "code": "3726",
+      "name": "Thiết bị gia dụng",
+      "level": 4,
+      "stockCount": 7
+    },
+    {
+      "code": "0587",
+      "name": "Nhiên liệu thay thế",
+      "level": 4,
+      "stockCount": 6
+    },
+    {
+      "code": "3537",
+      "name": "Đồ uống & giải khát",
+      "level": 4,
+      "stockCount": 6
+    },
+    {
+      "code": "5753",
+      "name": "Khách sạn",
+      "level": 4,
+      "stockCount": 6
+    },
+    {
+      "code": "2775",
+      "name": "Đường sắt",
+      "level": 4,
+      "stockCount": 5
+    },
+    {
+      "code": "2799",
+      "name": "Chất thải & Môi trường",
+      "level": 4,
+      "stockCount": 5
+    },
+    {
+      "code": "3767",
+      "name": "Hàng cá nhân",
+      "level": 4,
+      "stockCount": 5
+    },
+    {
+      "code": "4535",
+      "name": "Thiết bị y tế",
+      "level": 4,
+      "stockCount": 5
+    },
+    {
+      "code": "5337",
+      "name": "Phân phối thực phẩm",
+      "level": 4,
+      "stockCount": 5
+    },
+    {
+      "code": "5555",
+      "name": "Dịch vụ truyền thông",
+      "level": 4,
+      "stockCount": 5
+    },
+    {
+      "code": "8777",
+      "name": "Môi giới chứng khoán",
+      "level": 4,
+      "stockCount": 5
+    },
+    {
+      "code": "9572",
+      "name": "Phần cứng",
+      "level": 4,
+      "stockCount": 5
+    },
+    {
+      "code": "3535",
+      "name": "Vang & Rượu mạnh",
+      "level": 4,
+      "stockCount": 4
+    },
+    {
+      "code": "5751",
+      "name": "Hàng không",
+      "level": 4,
+      "stockCount": 4
+    },
+    {
+      "code": "8985",
+      "name": "Quỹ đóng",
+      "level": 4,
+      "stockCount": 4
+    },
+    {
+      "code": "2727",
+      "name": "Công nghiệp phức hợp",
+      "level": 4,
+      "stockCount": 3
+    },
+    {
+      "code": "2737",
+      "name": "Thiết bị điện",
+      "level": 4,
+      "stockCount": 3
+    },
+    {
+      "code": "2793",
+      "name": "Đào tạo & Việc làm",
+      "level": 4,
+      "stockCount": 3
+    },
+    {
+      "code": "3357",
+      "name": "Lốp xe",
+      "level": 4,
+      "stockCount": 3
+    },
+    {
+      "code": "3743",
+      "name": "Điện tử tiêu dùng",
+      "level": 4,
+      "stockCount": 3
+    },
+    {
+      "code": "3765",
+      "name": "Giầy dép",
+      "level": 4,
+      "stockCount": 3
+    },
+    {
+      "code": "3785",
+      "name": "Thuốc lá",
+      "level": 4,
+      "stockCount": 3
+    },
+    {
+      "code": "5379",
+      "name": "Phân phối hàng chuyên dụng",
+      "level": 4,
+      "stockCount": 3
+    },
+    {
+      "code": "6535",
+      "name": "Viễn thông cố định",
+      "level": 4,
+      "stockCount": 3
+    },
+    {
+      "code": "2753",
+      "name": "Xe tải & Đóng tàu",
+      "level": 4,
+      "stockCount": 2
+    },
+    {
+      "code": "2771",
+      "name": "Chuyển phát nhanh",
+      "level": 4,
+      "stockCount": 2
+    },
+    {
+      "code": "2779",
+      "name": "Dịch vụ vận tải",
+      "level": 4,
+      "stockCount": 2
+    },
+    {
+      "code": "2797",
+      "name": "Nhà cung cấp thiết bị",
+      "level": 4,
+      "stockCount": 2
+    },
+    {
+      "code": "4533",
+      "name": "Chăm sóc y tế",
+      "level": 4,
+      "stockCount": 2
+    },
+    {
+      "code": "4537",
+      "name": "Dụng cụ y tế",
+      "level": 4,
+      "stockCount": 2
+    },
+    {
+      "code": "4573",
+      "name": "Công nghệ sinh học",
+      "level": 4,
+      "stockCount": 2
+    },
+    {
+      "code": "8538",
+      "name": "Tái bảo hiểm",
+      "level": 4,
+      "stockCount": 2
+    },
+    {
+      "code": "8771",
+      "name": "Quản lý tài sản",
+      "level": 4,
+      "stockCount": 2
+    },
+    {
+      "code": "8775",
+      "name": "Tài chính đặc biệt",
+      "level": 4,
+      "stockCount": 2
+    },
+    {
+      "code": "9535",
+      "name": "Internet",
+      "level": 4,
+      "stockCount": 2
+    },
+    {
+      "code": "0577",
+      "name": "Ống dẫn Dầu",
+      "level": 4,
+      "stockCount": 1
+    },
+    {
+      "code": "0583",
+      "name": "Thiết bị năng lượng tái chế",
+      "level": 4,
+      "stockCount": 1
+    },
+    {
+      "code": "1753",
+      "name": "Nhôm",
+      "level": 4,
+      "stockCount": 1
+    },
+    {
+      "code": "1777",
+      "name": "Khai thác vàng",
+      "level": 4,
+      "stockCount": 1
+    },
+    {
+      "code": "3355",
+      "name": "Phụ tùng ô tô",
+      "level": 4,
+      "stockCount": 1
+    },
+    {
+      "code": "5333",
+      "name": "Phân phối dược phẩm",
+      "level": 4,
+      "stockCount": 1
+    },
+    {
+      "code": "5371",
+      "name": "Bán lẻ hàng may mặc",
+      "level": 4,
+      "stockCount": 1
+    },
+    {
+      "code": "5377",
+      "name": "Dịch vụ tiêu dùng chuyên ngành",
+      "level": 4,
+      "stockCount": 1
+    },
+    {
+      "code": "5553",
+      "name": "Giải trí & Truyền thông",
+      "level": 4,
+      "stockCount": 1
+    },
+    {
+      "code": "6575",
+      "name": "Viễn thông di động",
+      "level": 4,
+      "stockCount": 1
+    },
+    {
+      "code": "8575",
+      "name": "Bảo hiểm nhân thọ",
+      "level": 4,
+      "stockCount": 1
+    },
+    {
+      "code": "9533",
+      "name": "Dịch vụ Máy tính",
+      "level": 4,
+      "stockCount": 1
+    },
+    {
+      "code": "9574",
+      "name": "Thiết bị văn phòng",
+      "level": 4,
+      "stockCount": 1
+    }
+  ]
+}
